@@ -22,7 +22,7 @@ RSpec.describe 'Api::Inquiries', type: :request do
 
       it 'returns inquiries ordered by status_id then position' do
         json = JSON.parse(response.body)
-        expect(json.map { |i| i['title'] }).to eq(['Backlog 0', 'Todo 0', 'Todo 1'])
+        expect(json.map { |i| i['title'] }).to eq([ 'Backlog 0', 'Todo 0', 'Todo 1' ])
       end
 
       it 'returns camelCase keys with id, statusId, priorityId, title, description, position, createdAt, updatedAt' do

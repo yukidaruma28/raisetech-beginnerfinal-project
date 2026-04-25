@@ -19,7 +19,7 @@ RSpec.describe 'Api::Statuses', type: :request do
 
       it 'returns statuses ordered by position' do
         json = JSON.parse(response.body)
-        expect(json.map { |s| s['name'] }).to eq(['Backlog', 'Todo', 'In Progress'])
+        expect(json.map { |s| s['name'] }).to eq([ 'Backlog', 'Todo', 'In Progress' ])
       end
 
       it 'returns camelCase keys with id, name, color, position' do

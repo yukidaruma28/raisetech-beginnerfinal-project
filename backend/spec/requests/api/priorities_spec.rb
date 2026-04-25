@@ -19,7 +19,7 @@ RSpec.describe 'Api::Priorities', type: :request do
 
       it 'returns priorities ordered by position' do
         json = JSON.parse(response.body)
-        expect(json.map { |p| p['name'] }).to eq(['高', '中', '低'])
+        expect(json.map { |p| p['name'] }).to eq([ '高', '中', '低' ])
       end
 
       it 'returns camelCase keys with id, name, level, color, position' do

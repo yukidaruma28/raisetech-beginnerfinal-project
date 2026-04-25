@@ -18,7 +18,7 @@ RSpec.describe Priority, type: :model do
     end
 
     it 'rejects level outside 1..3' do
-      [-1, 0, 4, 5, 100].each do |bad|
+      [ -1, 0, 4, 5, 100 ].each do |bad|
         priority = build(:priority, level: bad)
         expect(priority).not_to be_valid, "expected level=#{bad} to be invalid"
       end
@@ -57,7 +57,7 @@ RSpec.describe Priority, type: :model do
       b = create(:priority, level: 1, position: 0)
       c = create(:priority, level: 2, position: 1)
 
-      expect(Priority.ordered.map(&:level)).to eq([1, 2, 3])
+      expect(Priority.ordered.map(&:level)).to eq([ 1, 2, 3 ])
     end
   end
 
