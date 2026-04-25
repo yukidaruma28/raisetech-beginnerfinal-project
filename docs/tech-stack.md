@@ -219,6 +219,7 @@ frontend は libmysqlclient に依存しないため、ホスト側で `npm run 
 | **Label / `inquiry_labels` 機能** | シングルユーザー想定で **Status × Priority の 2 軸**で「重要 × 緊急」の 4 象限を識別可能。分類用の Label は冗長と判断 |
 | **assignee（担当者）機能** | シングルユーザー想定のため担当者割当が不要 |
 | **5 段階優先度（Linear 準拠）** | No priority / Urgent / High / Medium / Low の 5 段階は粒度過多。**3 段階（高 / 中 / 低）+ デフォルト「低」**に簡素化することで「優先度未設定」状態を排除し、UI の null 分岐とフロント・バック双方の if 分岐を削減 |
+| **優先度のカスタム CRUD（追加・編集・削除）** | 3 段階固定運用に決めたため、UI からの増減や名前・色の編集機能は不要と判断。`level` は 1..3 の UNIQUE 制約 + `inquiries.priority_id` NOT NULL + FK RESTRICT という DB 設計と整合する形で UC-09 / UC-10 / UC-11 を MVP スコープ外とする。色やラベルを変えたい場合は seed / マイグレーションで対応する |
 
 ---
 
