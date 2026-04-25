@@ -1,0 +1,39 @@
+name: 機能追加
+description: 新しい機能を提案する
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 追加したい機能を一文で説明してください。
+      placeholder: 例）問い合わせにコメントを追加できるようにしたい
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 背景・理由
+      description: なぜこの機能が必要ですか？
+      placeholder: 例）対応の経緯を問い合わせごとに残したい
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件
+      placeholder: |
+        - [ ] 条件1
+        - [ ] 条件2
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 備考
+    validations:
+      required: false

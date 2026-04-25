@@ -1,0 +1,22 @@
+name: Issue リンクチェック
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-issue-reference:
+    name: PR本文にIssue参照が含まれているか確認
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR本文のIssue参照チェック
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if echo "$PR_BODY" | grep -qiE '(closes|fixes|resolves|refs)[[:space:]]+#[0-9]+'; then
+            echo "Issue参照が見つかりました。"
+          else
+            echo "エラー: PR本文にIssue参照が見つかりません。"
+            echo "PR本文に 'Closes #123' の形式で Issue 番号を記載してください。"
+            exit 1
+          fi

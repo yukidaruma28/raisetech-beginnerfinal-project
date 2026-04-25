@@ -1,0 +1,58 @@
+name: バグ報告
+description: 不具合を報告する
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: バグの概要
+      placeholder: 例）問い合わせを別ステータスにドラッグすると、ページがリロードされる
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境情報
+      value: |
+        - OS:
+        - ブラウザ:
+        - Ruby / Rails バージョン:
+        - Node.js バージョン:
+        - MySQL 起動方法（Docker / ローカル）:
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 備考・ログ
+      description: エラーメッセージ、コンソールログ、スクリーンショットなど
+    validations:
+      required: false

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+PROTECTED_BRANCH="main"
+
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/$PROTECTED_BRANCH" ]; then
+    echo "ERROR: '$PROTECTED_BRANCH' への直接プッシュは禁止されています。"
+    echo "フィーチャーブランチを作成して Pull Request を開いてください。"
+    exit 1
+  fi
+done
+
+exit 0

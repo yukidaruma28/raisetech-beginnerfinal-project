@@ -1,0 +1,35 @@
+*.zip
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.vscode/
+.DS_Store
+
+# 環境変数
+.env
+.env.*
+!.env.example
+
+# Rails
+backend/log/*
+backend/tmp/*
+backend/storage/*
+backend/public/assets/
+backend/.bundle/
+backend/vendor/bundle/
+backend/coverage/
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/coverage/
+
+# Terraform (infra/terraform/ 配下は個別の .gitignore でも除外しているが念のため)
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+!**/*.tfvars.example
+**/tfplan
+**/*.tfplan

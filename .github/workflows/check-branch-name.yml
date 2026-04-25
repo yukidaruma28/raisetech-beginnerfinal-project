@@ -1,0 +1,29 @@
+name: ブランチ名チェック
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-branch-name:
+    name: ブランチ命名規則チェック
+    runs-on: ubuntu-latest
+    steps:
+      - name: ブランチ名の確認
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          if echo "$BRANCH_NAME" | grep -qE '^(feature|fix|chore|docs)/[0-9]+-[a-z0-9-]+$'; then
+            echo "ブランチ名が規則に従っています: $BRANCH_NAME"
+          else
+            echo "エラー: ブランチ名が規則に従っていません: $BRANCH_NAME"
+            echo ""
+            echo "正しい形式:"
+            echo "  feature/{番号}-{説明}"
+            echo "  fix/{番号}-{説明}"
+            echo "  chore/{番号}-{説明}"
+            echo "  docs/{番号}-{説明}"
+            echo ""
+            echo "例: feature/3-add-inquiry-comment"
+            exit 1
+          fi

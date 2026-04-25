@@ -1,0 +1,55 @@
+name: チェックボックス確認
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-pr-checkboxes:
+    name: PR動作確認チェックボックス確認
+    runs-on: ubuntu-latest
+    steps:
+      - name: PRテンプレートのチェックボックスを確認
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if printf '%s\n' "$PR_BODY" | grep -qE '^\s*- \[ \]'; then
+            echo "エラー: PRの動作確認チェックボックスに未完了の項目があります。"
+            printf '%s\n' "$PR_BODY" | grep -E '^\s*- \[ \]'
+            echo "全チェックボックスにチェックを入れてからマージしてください。"
+            exit 1
+          else
+            echo "PRの動作確認チェックボックスはすべて完了しています。"
+          fi
+
+  check-issue-checkboxes:
+    name: Issue完了条件チェックボックス確認
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+    steps:
+      - name: 関連IssueのチェックボックスをGitHub APIで確認
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          REPO: ${{ github.repository }}
+        run: |
+          ISSUE_NUMBER=$(printf '%s\n' "$PR_BODY" \
+            | grep -iE '(closes|fixes|resolves|refs)[[:space:]]+#[0-9]+' \
+            | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+
+          if [ -z "$ISSUE_NUMBER" ]; then
+            echo "Issue番号が見つかりません（Issue参照チェックで別途検出されます）。"
+            exit 0
+          fi
+
+          ISSUE_BODY=$(gh api "repos/$REPO/issues/$ISSUE_NUMBER" --jq '.body // ""')
+
+          if printf '%s\n' "$ISSUE_BODY" | grep -qE '^\s*- \[ \]'; then
+            echo "エラー: Issue #$ISSUE_NUMBER の完了条件に未チェックの項目があります。"
+            printf '%s\n' "$ISSUE_BODY" | grep -E '^\s*- \[ \]'
+            echo "Issue の完了条件をすべてチェックしてからマージしてください。"
+            exit 1
+          else
+            echo "Issue #$ISSUE_NUMBER の完了条件チェックボックスはすべて完了しています。"
+          fi
