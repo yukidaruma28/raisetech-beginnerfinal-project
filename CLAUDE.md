@@ -43,13 +43,7 @@ npm run dev
 # → http://localhost:3000
 ```
 
-### フロントエンド (Next.js)
-```bash
-cd frontend
-npm install                # 初回のみ
-npm run dev
-# → http://localhost:3000
-```
+`npm run dev` は `next dev --webpack` を実行する。Next.js 16 デフォルトの Turbopack はマルチバイトを含むパス（例: `デスクトップ`）でパニックする既知のバグがあるため、Webpack を使う。
 
 ### ポート競合が起きた場合
 
