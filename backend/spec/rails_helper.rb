@@ -1,6 +1,8 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 require 'spec_helper'
-ENV['RAILS_ENV'] ||= 'test'
+# Docker コンテナでは RAILS_ENV=development が常に設定されているため、`||=` だと
+# development のまま走ってしまう。テスト用には強制的に test を設定する。
+ENV['RAILS_ENV'] = 'test'
 require_relative '../config/environment'
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?
@@ -35,6 +37,21 @@ rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
 RSpec.configure do |config|
+  # FactoryBot のショートハンド (create / build) を直接使えるようにする。
+  config.include FactoryBot::Syntax::Methods
+
+  # 一部環境で use_transactional_fixtures によるロールバックが MySQL のテーブル状態に
+  # 干渉するケースがあったため、念のため各 example の前に DB を truncate して
+  # テスト独立性を担保する（縦串実装の最小コスト対応。後続で DatabaseCleaner 化を検討）。
+  config.before(:each) do
+    if ActiveRecord::Base.connected?
+      ActiveRecord::Base.connection.tables.each do |table|
+        next if %w[ar_internal_metadata schema_migrations].include?(table)
+        ActiveRecord::Base.connection.execute("DELETE FROM #{table}")
+      end
+    end
+  end
+
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [
     Rails.root.join('spec/fixtures')
