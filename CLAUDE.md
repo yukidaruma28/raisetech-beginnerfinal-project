@@ -183,7 +183,7 @@ cd frontend && npx nuxi typecheck
 - `GET /api/inquiries` は inquiries → status / priority を includes して返す（N+1 対策）。
 - JSON キーは **camelCase** で返す（Vue/Nuxt 側との親和性）。`jsonapi-serializer` で一元化。
 - マスアサインメント対策は Strong Parameters で明示。
-- Priority は 3 段階運用（1=高 / 2=中 / 3=低）。`inquiries.priority_id` は NOT NULL（デフォルト「低」）。Label / assignee は MVP スコープ外（`docs/tech-stack.md` 参照）。
+- Priority は **3 段階固定運用**（1=高 / 2=中 / 3=低）。`level` は 1..3 の UNIQUE 制約で常に 3 件。`inquiries.priority_id` は NOT NULL（デフォルト「低」）。**カスタム CRUD（追加・編集・削除）は MVP スコープ外**（UC-09〜11 は実装しない、`docs/tech-stack.md` 参照）。Label / assignee も同じく MVP スコープ外。
 
 ### 実装済み API エンドポイント
 
