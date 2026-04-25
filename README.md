@@ -2,7 +2,7 @@
 
 Linear 風の問い合わせ管理アプリ。RaiseTech 初級編 最終課題としてのポートフォリオ作品。
 
-- **スタック**: Ruby on Rails 7.1（API mode）/ Next.js 15（App Router）/ MySQL 8
+- **スタック**: Ruby on Rails 8.1（API mode）/ Next.js 16（App Router）/ MySQL 8
 - **要件・設計**: [docs/requirements.md](docs/requirements.md) を起点にすべての設計ドキュメントを参照
 - **開発者向けガイド**: [CLAUDE.md](CLAUDE.md)（Claude Code が自動で読む。人間も参照可）
 
@@ -157,8 +157,8 @@ npm run dev
 | Git | 最新 | 省略 |
 | GitHub CLI (`gh`) | 最新 | `winget install GitHub.cli` |
 | Docker Desktop | 最新 | 省略 |
-| Ruby | 3.3 以上 | `winget install RubyInstallerTeam.RubyWithDevKit.3.3` |
-| Node.js | 20 LTS 以上 | `winget install OpenJS.NodeJS.LTS` |
+| Ruby | 3.4 以上 | `winget install RubyInstallerTeam.RubyWithDevKit.3.4` |
+| Node.js | 22 LTS 以上 | `winget install OpenJS.NodeJS.LTS` |
 
 ---
 
