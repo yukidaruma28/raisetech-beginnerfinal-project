@@ -2,6 +2,19 @@
 
 > メインドキュメント: [要件定義書](requirements.md)
 
+## MVP スコープと対象外
+
+本ドキュメントは ER 設計の網羅版（将来拡張を含む）。**MVP では以下を実装しない**（`docs/tech-stack.md` の「採用しないことを明示する技術」参照）:
+
+| 対象外 | 理由 |
+|---|---|
+| `labels` テーブル + `inquiry_labels` 中間テーブル | シングルユーザー想定で Status × Priority の 2 軸で識別可能なため |
+| `inquiries.category` カラム | 同上（カテゴリ分類は不要）|
+| `inquiries.assignee` カラム | シングルユーザーのため担当者割当が不要 |
+| 5 段階 priority | 3 段階（高/中/低）+ デフォルト「低」に簡素化（後述）|
+
+`priorities` テーブル自体は実装するが、シードと validation を **3 段階（level 1=高, 2=中, 3=低）**に絞る。`inquiries.priority_id` は **NOT NULL**（デフォルトは「低」(level 3) の id）。
+
 ## ER図
 
 ```
@@ -32,9 +45,9 @@
 | 関係 | カーディナリティ | 説明 |
 |------|---------------|------|
 | statuses → inquiries | 1対多 | ステータスは複数の問い合わせを持つ。ステータス削除時は `move_to` で指定した別ステータスへ問い合わせを移動してから削除する（RESTRICT） |
-| priorities → inquiries | 1対多 | 優先度は複数の問い合わせに割当可。優先度削除時は `inquiries.priority_id` を NULL に（ON DELETE SET NULL） |
-| inquiries → inquiry_labels | 1対多 | 問い合わせは複数のラベルを持てる |
-| labels → inquiry_labels | 1対多 | ラベル削除時は `inquiry_labels` も CASCADE DELETE |
+| priorities → inquiries | 1対多 | 優先度は複数の問い合わせに割当。`priority_id` は NOT NULL のため、削除時は紐づく Inquiry が存在すればエラーで止める（RESTRICT）|
+| ~~inquiries → inquiry_labels~~ | ~~1対多~~ | ❌ MVP スコープ外 |
+| ~~labels → inquiry_labels~~ | ~~1対多~~ | ❌ MVP スコープ外 |
 
 ---
 
@@ -146,12 +159,12 @@ CREATE INDEX idx_inquiry_labels_label_id ON inquiry_labels (label_id);
 |---|---|---|---|
 | id | BIGINT UNSIGNED | NOT NULL | PK |
 | name | VARCHAR(100) | NOT NULL | 優先度名、空文字不可 |
-| level | TINYINT | NOT NULL | 0-4。Linear 準拠：0=No priority, 1=Urgent, 2=High, 3=Medium, 4=Low |
+| level | TINYINT | NOT NULL | **MVP では 1..3 のみ採用**（1=高, 2=中, 3=低）。CHECK 制約は 0..4 と広めに残してあるが、アプリ層で 1..3 に絞る。UNIQUE 制約あり |
 | color | VARCHAR(7) | NOT NULL | HEXカラー |
 | position | INT | NOT NULL | 表示順 |
 | created_at / updated_at | DATETIME | NOT NULL | 自動更新 |
 
-**labels**
+**labels** ❌ **MVP スコープ外（実装しない）**
 | フィールド | 型 | NULL | 説明 |
 |---|---|---|---|
 | id | BIGINT UNSIGNED | NOT NULL | PK |
@@ -164,15 +177,15 @@ CREATE INDEX idx_inquiry_labels_label_id ON inquiry_labels (label_id);
 |---|---|---|---|
 | id | BIGINT UNSIGNED | NOT NULL | PK |
 | status_id | BIGINT UNSIGNED | NOT NULL | FK → statuses.id（RESTRICT） |
-| priority_id | BIGINT UNSIGNED | NULL | FK → priorities.id（SET NULL） |
+| priority_id | BIGINT UNSIGNED | **NOT NULL** | FK → priorities.id（**RESTRICT**）。3 段階に簡素化したことで未設定状態を排除。デフォルトは「低」(level=3) の id |
 | title | VARCHAR(255) | NOT NULL | 問い合わせタイトル、空文字不可 |
 | description | TEXT | NULL | 本文（任意） |
-| category | VARCHAR(100) | NULL | カテゴリ文字列（任意。将来マスタ化の余地あり） |
-| assignee | VARCHAR(100) | NULL | 担当者（テキスト自由入力） |
+| ~~category~~ | ~~VARCHAR(100)~~ | ~~NULL~~ | ❌ **MVP スコープ外（実装しない）** |
+| ~~assignee~~ | ~~VARCHAR(100)~~ | ~~NULL~~ | ❌ **MVP スコープ外（実装しない）** |
 | position | INT | NOT NULL | ステータス列内の表示順（0始まり） |
 | created_at / updated_at | DATETIME | NOT NULL | 自動更新 |
 
-**inquiry_labels**
+**inquiry_labels** ❌ **MVP スコープ外（実装しない）**
 | フィールド | 型 | NULL | 説明 |
 |---|---|---|---|
 | inquiry_id | BIGINT UNSIGNED | NOT NULL | FK → inquiries.id、CASCADE DELETE |
@@ -213,14 +226,14 @@ Rails の `db/seeds.rb` で以下を投入する想定。
 | 4 | Done | `#2ECC71` |
 | 5 | Canceled | `#7F8C8D` |
 
-**priorities（Linear 準拠、5件）**
+**priorities（3 段階、デフォルト「低」）**
 
 | position | level | name | color |
 |---|---|---|---|
-| 0 | 0 | No priority | `#BDC3C7` |
-| 1 | 1 | Urgent | `#E74C3C` |
-| 2 | 2 | High | `#E67E22` |
-| 3 | 3 | Medium | `#F1C40F` |
-| 4 | 4 | Low | `#3498DB` |
+| 0 | 1 | 高 | `#E74C3C` |
+| 1 | 2 | 中 | `#F1C40F` |
+| 2 | 3 | 低 | `#3498DB` |
 
-**labels**：初期データなし（ユーザーが必要に応じて作成）
+新規 `Inquiry` 作成時に `priority` を省略した場合は level=3（低）の id をデフォルトとして割り当てる。
+
+**labels**: ❌ MVP スコープ外（実装しない）

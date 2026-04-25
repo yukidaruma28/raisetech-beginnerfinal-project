@@ -6,10 +6,21 @@
 
 | 環境 | URL |
 |------|-----|
-| ローカル開発 | `http://localhost:3001/api` （Rails が 3001、Next.js が 3000） |
+| ローカル開発 | `http://localhost:3001/api` （Rails が 3001、Nuxt が 3000） |
 | 本番 | `https://<EC2 ドメイン>/api` |
 
-※ Next.js（3000）と Rails（3001）のポート衝突を避けるため、Rails 側のデフォルトを 3001 に変更する運用とする。
+※ Nuxt（3000）と Rails（3001）のポート衝突を避けるため、Rails 側のデフォルトを 3001 に変更する運用とする。
+
+## 実装状況（2026-04-25 時点）
+
+| エンドポイント | 状態 |
+|---|---|
+| `GET /api/statuses` | ✅ 実装済み |
+| `GET /api/priorities` | ✅ 実装済み |
+| `GET /api/inquiries` | ✅ 実装済み（`priorityId` 含む、read-only）|
+| `POST` / `PATCH` / `DELETE` 系 | ⏳ 未実装（UC-02〜04, UC-06〜08, UC-09〜11 で順次対応）|
+| `/api/labels` 系 | ❌ MVP スコープ外（`docs/tech-stack.md` 参照）|
+| Inquiry の `assignee` / `category` / `labels` | ❌ MVP スコープ外 |
 
 ---
 
@@ -17,12 +28,14 @@
 
 ### 問い合わせ（inquiries）
 
+MVP スコープでは `assignee` / `category` / `labels` フィールドを取り扱わない。
+
 | Method | Path | 説明 | Request Body | Response |
 |--------|------|------|-------------|---------|
-| GET | /inquiries | 全問い合わせ取得（ステータス・優先度・ラベル含む） | - | `Inquiry[]` |
+| GET | /inquiries | 全問い合わせ取得（ステータス・優先度を eager load） | - | `Inquiry[]` |
 | GET | /inquiries/:id | 問い合わせ1件取得 | - | `Inquiry` |
-| POST | /inquiries | 問い合わせ作成 | `{ statusId, priorityId?, title, description?, category?, assignee?, labelIds? }` | `Inquiry` |
-| PATCH | /inquiries/:id | 問い合わせ更新 | `{ statusId?, priorityId?, title?, description?, category?, assignee? }` | `Inquiry` |
+| POST | /inquiries | 問い合わせ作成（`priorityId` 省略時は「低」(level 3) をデフォルト） | `{ statusId, priorityId?, title, description? }` | `Inquiry` |
+| PATCH | /inquiries/:id | 問い合わせ更新 | `{ statusId?, priorityId?, title?, description? }` | `Inquiry` |
 | DELETE | /inquiries/:id | 問い合わせ削除 | - | 204 |
 | PATCH | /inquiries/:id/move | 問い合わせ移動（DnD） | `{ statusId, position }` | `Inquiry` |
 
@@ -38,24 +51,21 @@
 
 ### 優先度（priorities）
 
+3 段階運用（高 / 中 / 低）+ デフォルト「低」。`level` は 1..3 のみを採用する。
+
 | Method | Path | 説明 | Request Body | Response |
 |--------|------|------|-------------|---------|
 | GET | /priorities | 優先度一覧取得（表示順） | - | `Priority[]` |
 | POST | /priorities | 優先度作成 | `{ name, level, color }` | `Priority` |
 | PATCH | /priorities/:id | 優先度更新 | `{ name?, level?, color? }` | `Priority` |
 | PATCH | /priorities/:id/move | 表示順の並び替え | `{ position }` | `Priority` |
-| DELETE | /priorities/:id | 優先度削除（所属問い合わせの priority は NULL に） | - | 204 |
+| DELETE | /priorities/:id | 優先度削除 | - | 204 |
+
+優先度削除時の挙動: `inquiries.priority_id` は NOT NULL 制約のため、紐づく Inquiry が存在する場合は 409 Conflict（`ON DELETE RESTRICT`）。
 
 ### ラベル（labels）
 
-| Method | Path | 説明 | Request Body | Response |
-|--------|------|------|-------------|---------|
-| GET | /labels | ラベル一覧取得 | - | `Label[]` |
-| POST | /labels | ラベル作成 | `{ name, color }` | `Label` |
-| PATCH | /labels/:id | ラベル更新 | `{ name?, color? }` | `Label` |
-| DELETE | /labels/:id | ラベル削除 | - | 204 |
-| POST | /inquiries/:id/labels/:labelId | 問い合わせにラベル追加 | - | 200 |
-| DELETE | /inquiries/:id/labels/:labelId | 問い合わせからラベル解除 | - | 204 |
+**❌ MVP スコープ外**。シングルユーザー想定で Status × Priority の 2 軸により識別可能なため、Label 機能は実装しない方針（`docs/tech-stack.md` の「採用しないことを明示する技術」参照）。`labels` テーブル定義は `docs/data-design.md` に残しているが、エンドポイント・モデル・UI のいずれも実装しない。
 
 ---
 
@@ -71,37 +81,29 @@ type Status = {
 
 type Priority = {
   id: number;
-  name: string;
-  level: 0 | 1 | 2 | 3 | 4;
+  name: string;       // "高" | "中" | "低"
+  level: 1 | 2 | 3;   // 1=高, 2=中, 3=低
   color: string;
   position: number;
-};
-
-type Label = {
-  id: number;
-  name: string;
-  color: string;
 };
 
 type Inquiry = {
   id: number;
   statusId: number;
-  status: Status;              // eager load
-  priorityId: number | null;
-  priority: Priority | null;   // eager load
+  priorityId: number;          // NOT NULL（デフォルト「低」）
   title: string;
   description: string | null;
-  category: string | null;
-  assignee: string | null;
   position: number;
-  labels: Label[];             // eager load
   createdAt: string;           // ISO 8601: "2026-05-01T12:34:56Z"
   updatedAt: string;
 };
 ```
 
+> 注: `Inquiry` の `category` / `assignee` / `labels` フィールド、および `Label` 型は MVP スコープ外。
+> `status` / `priority` を nested で返さない設計（クライアント側で `statusId` / `priorityId` から `Map` 引き）。
+
 **JSON 命名規則**
-- Rails 側は `jsonapi-serializer` または `ActiveModelSerializers` を用い、キーは **camelCase** で返す（Next.js 側との親和性）。
+- Rails 側は `jsonapi-serializer` を用い、キーは **camelCase** で返す（Vue/Nuxt 側との親和性）。
 
 ---
 
@@ -117,12 +119,11 @@ Content-Type: application/json
   "statusId": 1,
   "priorityId": 2,
   "title": "ログインできない",
-  "description": "パスワードリセット後にログイン不可",
-  "category": "認証",
-  "assignee": "山田",
-  "labelIds": [3, 5]
+  "description": "パスワードリセット後にログイン不可"
 }
 ```
+
+`priorityId` を省略した場合は「低」(level=3) のレコード id がサーバ側で割り当てられる。
 
 ### 問い合わせ移動（DnD）
 

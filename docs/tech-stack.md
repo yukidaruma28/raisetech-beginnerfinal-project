@@ -216,6 +216,9 @@ frontend は libmysqlclient に依存しないため、ホスト側で `npm run 
 | Devise / 認証系 Gem | 認証なしのため不要 |
 | ActionCable | リアルタイム同期は MVP 対象外 |
 | Pinia（Vuex 後継） | サーバー状態は Vue Query が担当、UI ローカル状態はコンポーネント内で完結する設計のため、現時点では不要 |
+| **Label / `inquiry_labels` 機能** | シングルユーザー想定で **Status × Priority の 2 軸**で「重要 × 緊急」の 4 象限を識別可能。分類用の Label は冗長と判断 |
+| **assignee（担当者）機能** | シングルユーザー想定のため担当者割当が不要 |
+| **5 段階優先度（Linear 準拠）** | No priority / Urgent / High / Medium / Low の 5 段階は粒度過多。**3 段階（高 / 中 / 低）+ デフォルト「低」**に簡素化することで「優先度未設定」状態を排除し、UI の null 分岐とフロント・バック双方の if 分岐を削減 |
 
 ---
 

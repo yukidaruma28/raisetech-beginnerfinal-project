@@ -4,7 +4,7 @@ module Api
     # api-design.md のレスポンス型 `Inquiry[]` (camelCase, フラット) に準拠。
     # status を includes して N+1 を回避し、status_id → position の二段ソートで返す。
     def index
-      inquiries = Inquiry.includes(:status).order(:status_id, :position, :id)
+      inquiries = Inquiry.includes(:status, :priority).order(:status_id, :position, :id)
       render json: serialize_collection(inquiries)
     end
 

@@ -5,8 +5,8 @@ import BoardListView from '~/components/board/BoardListView.vue'
 <template>
   <div class="min-h-screen bg-background text-foreground">
     <header class="border-b">
-      <div class="mx-auto flex max-w-7xl items-center px-6 py-4">
-        <h1 class="text-xl font-semibold">
+      <div class="mx-auto flex max-w-7xl items-center px-6 py-5">
+        <h1 class="text-2xl font-semibold">
           Inquiry Board
         </h1>
       </div>

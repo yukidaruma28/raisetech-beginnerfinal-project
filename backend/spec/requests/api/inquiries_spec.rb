@@ -25,14 +25,33 @@ RSpec.describe 'Api::Inquiries', type: :request do
         expect(json.map { |i| i['title'] }).to eq(['Backlog 0', 'Todo 0', 'Todo 1'])
       end
 
-      it 'returns camelCase keys with id, statusId, title, description, position, createdAt, updatedAt' do
+      it 'returns camelCase keys with id, statusId, priorityId, title, description, position, createdAt, updatedAt' do
         json = JSON.parse(response.body)
         first = json.first
-        expect(first.keys).to match_array(%w[id statusId title description position createdAt updatedAt])
+        expect(first.keys).to match_array(%w[id statusId priorityId title description position createdAt updatedAt])
         expect(first['id']).to eq(i_backlog_0.id)
         expect(first['statusId']).to eq(backlog.id)
         expect(first['title']).to eq('Backlog 0')
         expect(first['position']).to eq(0)
+      end
+
+      it 'always returns a non-null priorityId (priority is required)' do
+        json = JSON.parse(response.body)
+        json.each do |inquiry|
+          expect(inquiry['priorityId']).not_to be_nil, "inquiry #{inquiry['id']} should have priority"
+        end
+      end
+
+      it 'returns the assigned priorityId' do
+        # 既存 priority（level=1, factory のデフォルト）以外を別 level で作成
+        explicit_priority = create(:priority, level: 2, name: '中', color: '#F1C40F', position: 1)
+        with_priority = create(:inquiry, status: backlog, title: 'With priority', position: 99, priority: explicit_priority)
+
+        get '/api/inquiries'
+        json = JSON.parse(response.body)
+        target = json.find { |i| i['id'] == with_priority.id }
+        expect(target).not_to be_nil
+        expect(target['priorityId']).to eq(explicit_priority.id)
       end
     end
 
