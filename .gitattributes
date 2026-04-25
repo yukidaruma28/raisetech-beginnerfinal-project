@@ -1,0 +1,16 @@
+# すべてのテキストファイルは Git 内部では LF で保存し、チェックアウト時はプラットフォーム既定に変換する。
+* text=auto
+
+# CI で読まれる構成ファイルは常に LF を強制する（CRLF だと setup-ruby などが失敗する）。
+*.yml           text eol=lf
+*.yaml          text eol=lf
+.ruby-version   text eol=lf
+.node-version   text eol=lf
+Gemfile         text eol=lf
+Gemfile.lock    text eol=lf
+*.rb            text eol=lf
+*.sh            text eol=lf
+*.bash          text eol=lf
+
+# シェルスクリプト系（Git フック）も LF。
+.githooks/**    text eol=lf

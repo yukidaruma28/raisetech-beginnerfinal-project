@@ -117,7 +117,23 @@ Closes #{Issue番号}
 
 **マージの条件：**
 
-PR テンプレートと関連 Issue のすべてのチェックボックスがチェックされていること。`check-pr-checkboxes` / `check-issue-checkboxes` が pass しない限りマージ不可。
+- PR テンプレートと関連 Issue のすべてのチェックボックスがチェックされていること（`check-pr-checkboxes` / `check-issue-checkboxes` が pass）。
+- `backend-ci.yml`（RSpec / RuboCop / Brakeman）と `frontend-ci.yml`（ESLint / `nuxi typecheck`）がすべて green であること。バックエンド変更を含む PR は backend-ci が、フロントエンド変更を含む PR は frontend-ci が走る。
+
+### CI と同じチェックをローカルで走らせる
+
+PR を出す前に必ず以下を実行し、すべて pass / 違反 0 を確認する。
+
+```bash
+# Backend（docker compose 起動済み前提）
+docker compose exec backend bundle exec rspec
+docker compose exec backend bundle exec rubocop
+docker compose exec backend bundle exec brakeman --no-pager --quiet
+
+# Frontend
+cd frontend && npm run lint
+cd frontend && npx nuxi typecheck
+```
 
 
 ## アーキテクチャ

@@ -49,7 +49,7 @@ class RestructurePrioritiesToThreeLevels < ActiveRecord::Migration[8.1]
   def three_level_layout?
     rows = connection.select_all("SELECT level, name FROM priorities ORDER BY level").to_a
     return false unless rows.size == 3
-    rows.map { |r| [r["level"].to_i, r["name"]] } == [[1, "高"], [2, "中"], [3, "低"]]
+    rows.map { |r| [ r["level"].to_i, r["name"] ] } == [ [ 1, "高" ], [ 2, "中" ], [ 3, "低" ] ]
   end
 
   def priority_id_nullable?

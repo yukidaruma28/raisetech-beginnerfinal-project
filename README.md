@@ -136,6 +136,32 @@ npm run dev
   → Plan モードで実装計画作成 → GitHub Issue 作成 → ブランチ作成 → 実装 → PR まで自動化される
 - 詳細な規約は [CLAUDE.md](CLAUDE.md) の「開発フロー」セクション
 
+### 6. CI（GitHub Actions）
+
+PR を作成すると以下のワークフローが自動で走る。すべて green でないとマージできない。
+
+| ワークフロー | 走る条件 | 内容 |
+|-------------|---------|------|
+| `backend-ci.yml` | `backend/**` の変更 | RSpec / RuboCop / Brakeman |
+| `frontend-ci.yml` | `frontend/**` の変更 | ESLint / `nuxi typecheck` |
+| `check-checkboxes.yml` | 常時 | PR テンプレートと関連 Issue のチェックボックスがすべて埋まっていること |
+| `check-issue-link.yml` | 常時 | PR 本文に `Closes #N` 等の Issue 参照があること |
+| `check-branch-name.yml` | 常時 | ブランチ名が命名規則に沿っていること |
+
+ローカルで PR 前に同等の確認を行うには：
+
+```bash
+# Backend（docker compose 起動済み前提）
+docker compose exec backend bundle exec rspec
+docker compose exec backend bundle exec rubocop
+docker compose exec backend bundle exec brakeman --no-pager --quiet
+
+# Frontend
+cd frontend
+npm run lint
+npx nuxi typecheck
+```
+
 ---
 
 ## ドキュメント

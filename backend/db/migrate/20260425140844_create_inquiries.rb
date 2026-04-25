@@ -14,7 +14,7 @@ class CreateInquiries < ActiveRecord::Migration[8.1]
 
     # 単独の status_id インデックスは t.references で自動生成されるため、
     # ここでは複合インデックスのみ追加する（最頻出クエリ: status 列内の position 順取得）。
-    add_index :inquiries, [:status_id, :position], name: "idx_inquiries_status_position"
+    add_index :inquiries, [ :status_id, :position ], name: "idx_inquiries_status_position"
 
     # data-design.md の CHECK 制約を MySQL ネイティブで再現する。
     # status の縦串と同じ方針（DB 層でも整合性を担保）。
