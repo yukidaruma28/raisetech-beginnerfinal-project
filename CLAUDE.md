@@ -193,6 +193,7 @@ cd frontend && npx nuxi typecheck
 | GET | /api/priorities | 優先度一覧（position 昇順、3 件）|
 | GET | /api/inquiries | 問い合わせ一覧（status_id / priority_id eager load 済み）|
 | POST | /api/inquiries | 問い合わせ作成（priorityId 省略時「低」自動割当、position は同 status 内 MAX+1 自動採番、201 / 422 / 404 / 400）|
+| PATCH | /api/inquiries/:id | 問い合わせ部分更新（送信されたフィールドのみ反映、position 据え置き、200 / 422 / 404）|
 
 ### API ベース URL
 

@@ -21,3 +21,8 @@ export const createInquirySchema = z.object({
 })
 
 export type CreateInquiryFormValues = z.infer<typeof createInquirySchema>
+
+// 編集（UC-03）はフィールド単位の部分更新なので、すべてオプショナルにした派生スキーマを使う。
+// 個別フィールドの単独検証は createInquirySchema.shape.<field>.safeParse(...) で行う想定。
+export const updateInquirySchema = createInquirySchema.partial()
+export type UpdateInquiryFormValues = z.infer<typeof updateInquirySchema>

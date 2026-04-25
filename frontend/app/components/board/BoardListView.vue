@@ -9,6 +9,7 @@ import type { Status } from '~/types/status'
 import type { Priority } from '~/types/priority'
 import type { Inquiry } from '~/types/inquiry'
 import InquiryRow from './InquiryRow.vue'
+import InquiryEditDialog from './InquiryEditDialog.vue'
 
 const statusesQuery = useQuery<Status[]>({
   queryKey: ['statuses'],
@@ -88,6 +89,23 @@ function toggle(statusId: number) {
 function priorityFor(inquiry: Inquiry): Priority | undefined {
   return prioritiesById.value.get(inquiry.priorityId)
 }
+
+// 詳細編集モーダルで開いている問い合わせ。クリックされた InquiryRow から渡される。
+// invalidate 後の再取得でリストが更新された際は、id で最新の Inquiry を引き直すことで
+// モーダル内の表示もリスト側の値に追従させる。
+const editingId = ref<number | null>(null)
+const editingInquiry = computed<Inquiry | null>(() => {
+  if (editingId.value == null) return null
+  return inquiriesQuery.data.value?.find(i => i.id === editingId.value) ?? null
+})
+
+function openEdit(inquiry: Inquiry) {
+  editingId.value = inquiry.id
+}
+
+function closeEdit() {
+  editingId.value = null
+}
 </script>
 
 <template>
@@ -141,9 +159,25 @@ function priorityFor(inquiry: Inquiry): Priority | undefined {
             :inquiry="inquiry"
             :status="status"
             :priority="priorityFor(inquiry)"
+            @open="openEdit"
           />
         </div>
       </div>
     </div>
+
+    <!--
+      reka-ui Dialog は SSR で IPC エラーを起こすので ClientOnly でラップする
+      （UC-02 の CreateInquiryDialog と同じ落とし穴）。
+      v-if で都度マウントすることで前回の編集 draft が残らないようにする。
+    -->
+    <ClientOnly>
+      <InquiryEditDialog
+        v-if="editingInquiry"
+        :inquiry="editingInquiry"
+        :statuses="statusesQuery.data.value ?? []"
+        :priorities="prioritiesQuery.data.value ?? []"
+        @close="closeEdit"
+      />
+    </ClientOnly>
   </section>
 </template>

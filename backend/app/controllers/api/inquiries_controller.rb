@@ -16,7 +16,7 @@ module Api
     #   - 成功 201 / 単一レコードを camelCase で返す
     #   - status / priority 未存在 → 404、バリデーション違反 → 422
     def create
-      attrs = create_params
+      attrs = normalized_params
 
       # statusId が無い場合は 400（先に弾く。Rails の belongs_to required では
       # 422 になるが、構文レベルの欠落として 400 で返すほうが docs/api-design.md と整合）。
@@ -43,18 +43,44 @@ module Api
       end
     end
 
+    # PATCH /api/inquiries/:id
+    # 部分更新。送信されたフィールドだけを update する（送られていないフィールドは触らない）。
+    # status_id 変更時の position 再計算は UC-05（DnD 移動）で行う。ここでは position 据え置き。
+    def update
+      inquiry = Inquiry.find(params[:id])
+      attrs = normalized_params
+
+      # 存在しない status_id / priority_id を指定された場合は 404 で先に弾く。
+      # （Inquiry#update が belongs_to required で 422 を返すケースもあるが、
+      #  「対象リソースが見つからない」ほうが意味的に近いため 404 とする）
+      Status.find(attrs[:status_id])     if attrs[:status_id].present?
+      Priority.find(attrs[:priority_id]) if attrs[:priority_id].present?
+
+      if inquiry.update(attrs)
+        render json: serialize_record(inquiry)
+      else
+        render_validation_error(inquiry)
+      end
+    end
+
     private
 
     # フロントは camelCase で送る（statusId / priorityId）ため、permit 後に
-    # snake_case にして扱う。両形式（snake/camel）を許容することでテスト容易性も担保。
-    def create_params
+    # snake_case にして扱う。両形式（snake/camel）を許容してテスト容易性も担保。
+    # update では「キー自体が未送信なら更新しない」を区別したいので、
+    # 元の params に key が無い場合は結果の hash にも入れない。
+    def normalized_params
       raw = params.permit(:title, :description, :statusId, :priorityId, :status_id, :priority_id)
-      {
-        title: raw[:title],
-        description: raw[:description],
-        status_id: raw[:status_id].presence || raw[:statusId].presence,
-        priority_id: raw[:priority_id].presence || raw[:priorityId].presence
-      }
+      result = {}
+      result[:title] = raw[:title] if raw.key?(:title)
+      result[:description] = raw[:description] if raw.key?(:description)
+      if raw.key?(:status_id) || raw.key?(:statusId)
+        result[:status_id] = raw[:status_id].presence || raw[:statusId].presence
+      end
+      if raw.key?(:priority_id) || raw.key?(:priorityId)
+        result[:priority_id] = raw[:priority_id].presence || raw[:priorityId].presence
+      end
+      result
     end
 
     # priority_id 未指定の場合は「低」(level=3) を返す。指定があれば該当 id を引く。
@@ -82,7 +108,7 @@ module Api
       records.map { |record| flatten_serialized(record) }
     end
 
-    # 単一レコード版。create のレスポンスで使う。
+    # 単一レコード版。create / update のレスポンスで使う。
     def serialize_record(inquiry)
       record = InquirySerializer.new(inquiry).serializable_hash[:data]
       flatten_serialized(record)

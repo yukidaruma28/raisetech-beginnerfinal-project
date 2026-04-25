@@ -198,4 +198,145 @@ RSpec.describe 'Api::Inquiries', type: :request do
       end
     end
   end
+
+  describe 'PATCH /api/inquiries/:id' do
+    let!(:backlog) { create(:status, name: 'Backlog', color: '#95A5A6', position: 0) }
+    let!(:todo)    { create(:status, name: 'Todo',    color: '#3498DB', position: 1) }
+    let!(:high)    { create(:priority, level: 1, name: '高', color: '#E74C3C', position: 0) }
+    let!(:medium)  { create(:priority, level: 2, name: '中', color: '#F1C40F', position: 1) }
+    let!(:low)     { create(:priority, level: 3, name: '低', color: '#3498DB', position: 2) }
+    let!(:inquiry) do
+      create(:inquiry, status: backlog, priority: low,
+                       title: '元のタイトル', description: '元の本文', position: 5)
+    end
+
+    context 'with valid title-only patch (camelCase)' do
+      it 'returns 200 and updates only title' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { title: '更新後タイトル' }, as: :json
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+        expect(json['title']).to eq('更新後タイトル')
+        expect(json['description']).to eq('元の本文')
+        expect(json['statusId']).to eq(backlog.id)
+        expect(json['priorityId']).to eq(low.id)
+        expect(json['position']).to eq(5)
+      end
+    end
+
+    context 'with description-only patch' do
+      it 'updates description and leaves other fields' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { description: '新しい本文' }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)['description']).to eq('新しい本文')
+        expect(inquiry.reload.title).to eq('元のタイトル')
+      end
+
+      it 'allows clearing description by sending empty string' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { description: '' }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(inquiry.reload.description).to eq('')
+      end
+    end
+
+    context 'with statusId-only patch' do
+      it 'changes status without changing position' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { statusId: todo.id }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(inquiry.reload.status_id).to eq(todo.id)
+        expect(inquiry.position).to eq(5)
+      end
+    end
+
+    context 'with priorityId-only patch' do
+      it 'changes priority' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { priorityId: high.id }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(inquiry.reload.priority_id).to eq(high.id)
+      end
+    end
+
+    context 'with all fields patched' do
+      it 'updates everything atomically' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { title: 't', description: 'd', statusId: todo.id, priorityId: medium.id },
+              as: :json
+        expect(response).to have_http_status(:ok)
+        inquiry.reload
+        expect(inquiry.title).to eq('t')
+        expect(inquiry.description).to eq('d')
+        expect(inquiry.status_id).to eq(todo.id)
+        expect(inquiry.priority_id).to eq(medium.id)
+      end
+    end
+
+    context 'when title is blank' do
+      it 'returns 422 with title detail' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { title: '' }, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json['error']).to eq('UNPROCESSABLE_ENTITY')
+        fields = json['details'].map { |d| d['field'] }
+        expect(fields).to include('title')
+      end
+    end
+
+    context 'when title exceeds 255 characters' do
+      it 'returns 422' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { title: 'a' * 256 }, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    context 'when statusId does not exist' do
+      it 'returns 404' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { statusId: 999_999 }, as: :json
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'when priorityId does not exist' do
+      it 'returns 404' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { priorityId: 999_999 }, as: :json
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'when inquiry id does not exist' do
+      it 'returns 404' do
+        patch '/api/inquiries/999999',
+              params: { title: 'x' }, as: :json
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'with snake_case params' do
+      it 'accepts status_id / priority_id keys' do
+        patch "/api/inquiries/#{inquiry.id}",
+              params: { status_id: todo.id, priority_id: medium.id }, as: :json
+        expect(response).to have_http_status(:ok)
+        inquiry.reload
+        expect(inquiry.status_id).to eq(todo.id)
+        expect(inquiry.priority_id).to eq(medium.id)
+      end
+    end
+
+    context 'with empty body' do
+      it 'leaves all fields unchanged and returns 200' do
+        patch "/api/inquiries/#{inquiry.id}", params: {}, as: :json
+        expect(response).to have_http_status(:ok)
+        inquiry.reload
+        expect(inquiry.title).to eq('元のタイトル')
+        expect(inquiry.description).to eq('元の本文')
+      end
+    end
+  end
 end
