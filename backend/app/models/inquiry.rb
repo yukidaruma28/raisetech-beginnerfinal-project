@@ -1,5 +1,8 @@
 class Inquiry < ApplicationRecord
   belongs_to :status
+  # priority は必須（3 段階で必ず割当、デフォルトは「低」）。
+  # status と同じく association 側に required を任せ、独立した validates は書かない。
+  belongs_to :priority
 
   validates :title,
             presence: true,

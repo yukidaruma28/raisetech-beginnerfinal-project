@@ -1,8 +1,10 @@
 // Rails の InquirySerializer が camelCase で返すレスポンスに対応する型。
-// priority_id / category / assignee は次スライスで追加するため未対応。
+// category / assignee は MVP スコープ外（docs/tech-stack.md 参照）。
+// priority は必須（3 段階 + デフォルト「低」）。
 export interface Inquiry {
   id: number
   statusId: number
+  priorityId: number
   title: string
   description: string | null
   position: number
