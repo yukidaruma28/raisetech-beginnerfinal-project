@@ -19,3 +19,18 @@ export async function createInquiry(input: CreateInquiryInput): Promise<Inquiry>
     body: JSON.stringify(input),
   })
 }
+
+// 部分更新リクエスト型。送信したフィールドだけがサーバ側で更新される。
+export interface UpdateInquiryInput {
+  title?: string
+  description?: string
+  statusId?: number
+  priorityId?: number
+}
+
+export async function updateInquiry(id: number, input: UpdateInquiryInput): Promise<Inquiry> {
+  return apiFetch<Inquiry>(`/api/inquiries/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}

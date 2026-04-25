@@ -53,7 +53,10 @@ const {
 })
 
 // 入力中に即時バリデーションを走らせる（255 字超過 / 必須漏れをリアルタイムで提示）。
-const fieldOptions = { validateOnModelUpdate: true } as const
+// validateOnBlur は false にする：reka-ui Dialog の close アニメーション中に
+// input から focus が外れて blur 発火 → 空文字を validate → 一瞬エラー赤字が出る、を防ぐ。
+// validateOnModelUpdate=true で入力中の検証は十分。
+const fieldOptions = { validateOnModelUpdate: true, validateOnBlur: false } as const
 const [title, titleAttrs] = defineField('title', fieldOptions)
 const [description, descriptionAttrs] = defineField('description', fieldOptions)
 const [statusId, statusIdAttrs] = defineField('statusId', fieldOptions)
@@ -167,7 +170,7 @@ function humanizeReason(field: string, reason: string): string {
             placeholder="例) ログインできない"
             autocomplete="off"
           >
-          <p v-if="errors.title" class="text-xs text-red-600">
+          <p v-if="open && errors.title" class="text-xs text-red-600">
             {{ errors.title }}
           </p>
         </div>
@@ -186,7 +189,7 @@ function humanizeReason(field: string, reason: string): string {
             :class="{ 'border-red-500 focus-visible:ring-red-500': errors.description }"
             placeholder="（任意）詳細を記載してください"
           />
-          <p v-if="errors.description" class="text-xs text-red-600">
+          <p v-if="open && errors.description" class="text-xs text-red-600">
             {{ errors.description }}
           </p>
         </div>
@@ -208,7 +211,7 @@ function humanizeReason(field: string, reason: string): string {
                 {{ s.name }}
               </option>
             </select>
-            <p v-if="errors.statusId" class="text-xs text-red-600">
+            <p v-if="open && errors.statusId" class="text-xs text-red-600">
               {{ errors.statusId }}
             </p>
           </div>
@@ -228,7 +231,7 @@ function humanizeReason(field: string, reason: string): string {
                 {{ p.name }}
               </option>
             </select>
-            <p v-if="errors.priorityId" class="text-xs text-red-600">
+            <p v-if="open && errors.priorityId" class="text-xs text-red-600">
               {{ errors.priorityId }}
             </p>
           </div>
