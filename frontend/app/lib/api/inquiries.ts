@@ -34,3 +34,9 @@ export async function updateInquiry(id: number, input: UpdateInquiryInput): Prom
     body: JSON.stringify(input),
   })
 }
+
+// 物理削除。成功時は 204 No Content（body なし）→ apiFetch は undefined を返す。
+// 呼び出し側は値を見ない前提で void を返す。
+export async function deleteInquiry(id: number): Promise<void> {
+  await apiFetch<undefined>(`/api/inquiries/${id}`, { method: 'DELETE' })
+}

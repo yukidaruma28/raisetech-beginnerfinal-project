@@ -339,4 +339,43 @@ RSpec.describe 'Api::Inquiries', type: :request do
       end
     end
   end
+
+  describe 'DELETE /api/inquiries/:id' do
+    let!(:backlog) { create(:status, name: 'Backlog', color: '#95A5A6', position: 0) }
+    let!(:low)     { create(:priority, level: 3, name: '低', color: '#3498DB', position: 0) }
+    let!(:inquiry) do
+      create(:inquiry, status: backlog, priority: low,
+                       title: '削除対象', description: 'テスト', position: 0)
+    end
+
+    context 'when the inquiry exists' do
+      it 'returns 204 No Content' do
+        delete "/api/inquiries/#{inquiry.id}"
+        expect(response).to have_http_status(:no_content)
+        expect(response.body).to be_empty
+      end
+
+      it 'removes the record from the database' do
+        expect {
+          delete "/api/inquiries/#{inquiry.id}"
+        }.to change(Inquiry, :count).by(-1)
+        expect(Inquiry.find_by(id: inquiry.id)).to be_nil
+      end
+
+      it 'is not returned by subsequent GET /api/inquiries' do
+        delete "/api/inquiries/#{inquiry.id}"
+        get '/api/inquiries'
+        ids = JSON.parse(response.body).map { |i| i['id'] }
+        expect(ids).not_to include(inquiry.id)
+      end
+    end
+
+    context 'when the inquiry does not exist' do
+      it 'returns 404' do
+        delete '/api/inquiries/999999'
+        expect(response).to have_http_status(:not_found)
+        expect(JSON.parse(response.body)['error']).to eq('NOT_FOUND')
+      end
+    end
+  end
 end

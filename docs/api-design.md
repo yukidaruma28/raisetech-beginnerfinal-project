@@ -20,7 +20,8 @@
 | `GET /api/inquiries` | ✅ 実装済み（`priorityId` 含む、read-only）|
 | `POST /api/inquiries` | ✅ 実装済み（UC-02、`priorityId` 省略時「低」自動割当・`position` 自動採番）|
 | `PATCH /api/inquiries/:id` | ✅ 実装済み（UC-03、部分更新・camelCase/snake_case 双方対応・`position` は据え置き）|
-| その他 `PATCH` / `DELETE` 系 | ⏳ 未実装（UC-04, UC-06〜08, UC-09〜11 で順次対応）|
+| `DELETE /api/inquiries/:id` | ✅ 実装済み（UC-04、204 No Content・物理削除）|
+| その他 `PATCH` / `DELETE` 系 | ⏳ 未実装（UC-06〜08, UC-09〜11 で順次対応）|
 | `/api/labels` 系 | ❌ MVP スコープ外（`docs/tech-stack.md` 参照）|
 | Inquiry の `assignee` / `category` / `labels` | ❌ MVP スコープ外 |
 
