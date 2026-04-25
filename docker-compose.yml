@@ -11,7 +11,37 @@ services:
       MYSQL_PASSWORD: inquirypass
     volumes:
       - mysql_data:/var/lib/mysql
-    command: --default-authentication-plugin=caching_sha2_password
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "inquiry", "-pinquirypass"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: inquiry_backend
+    ports:
+      - "3001:3001"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: inquiry
+      DB_PASSWORD: inquirypass
+      RAILS_ENV: development
+      RAILS_MAX_THREADS: 5
+    volumes:
+      - ./backend:/rails
+      - bundle_cache:/usr/local/bundle
+    depends_on:
+      mysql:
+        condition: service_healthy
+    tty: true
+    stdin_open: true
 
 volumes:
   mysql_data:
+  bundle_cache:

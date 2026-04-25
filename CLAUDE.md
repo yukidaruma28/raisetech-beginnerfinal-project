@@ -10,22 +10,37 @@ Linear 風の問い合わせ管理アプリ。シングルユーザー・1ボー
 
 ## 起動コマンド
 
-### Docker (MySQL)
+### Docker (MySQL + Rails)
+
+バックエンド（Rails）と DB（MySQL）はすべて Docker 上で動かす。Windows の libmysqlclient 互換問題を回避するため、Rails コンテナ内で `bundle install` / `rails server` を実行する設計。
+
 ```bash
 # プロジェクトルートで実行
 docker-compose up -d
-# → MySQL が localhost:3306 で起動
+# → MySQL が localhost:3306、Rails API が localhost:3001 で起動
 # 停止: docker-compose down
 # データも含めて完全リセット: docker-compose down -v
 ```
 
-### バックエンド (Rails API)
+初回起動時は `inquiry_backend` コンテナの中で `bundle install` → `rails db:prepare` → `rails server` が自動実行されるため、起動完了まで数分かかる。
+
+### Rails コマンドの実行方法
+
+ホスト側で `bundle exec rails ...` を直接実行するのではなく、コンテナ越しに発行する:
+
 ```bash
-cd backend
-bundle install             # 初回のみ
-bundle exec rails db:prepare   # 初回・マイグレーション反映時
-bundle exec rails server -p 3001
-# → http://localhost:3001
+docker compose exec backend bundle exec rails console
+docker compose exec backend bundle exec rails db:migrate
+docker compose exec backend bundle exec rspec
+docker compose exec backend bundle exec bin/rails generate model Foo
+```
+
+### フロントエンド (Next.js)
+```bash
+cd frontend
+npm install                # 初回のみ
+npm run dev
+# → http://localhost:3000
 ```
 
 ### フロントエンド (Next.js)
