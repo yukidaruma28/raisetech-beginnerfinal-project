@@ -73,4 +73,129 @@ RSpec.describe 'Api::Inquiries', type: :request do
       end
     end
   end
+
+  describe 'POST /api/inquiries' do
+    let!(:todo)        { create(:status, name: 'Todo', color: '#3498DB', position: 0) }
+    let!(:high)        { create(:priority, level: 1, name: '高', color: '#E74C3C', position: 0) }
+    let!(:medium)      { create(:priority, level: 2, name: '中', color: '#F1C40F', position: 1) }
+    let!(:low)         { create(:priority, level: 3, name: '低', color: '#3498DB', position: 2) }
+
+    context 'with valid camelCase params' do
+      let(:body) do
+        { statusId: todo.id, priorityId: medium.id, title: '新規問い合わせ', description: '本文' }
+      end
+
+      it 'returns 201 Created' do
+        post '/api/inquiries', params: body, as: :json
+        expect(response).to have_http_status(:created)
+      end
+
+      it 'persists a new Inquiry' do
+        expect {
+          post '/api/inquiries', params: body, as: :json
+        }.to change(Inquiry, :count).by(1)
+      end
+
+      it 'returns camelCase keys for the created record' do
+        post '/api/inquiries', params: body, as: :json
+        json = JSON.parse(response.body)
+        expect(json.keys).to match_array(%w[id statusId priorityId title description position createdAt updatedAt])
+        expect(json['statusId']).to eq(todo.id)
+        expect(json['priorityId']).to eq(medium.id)
+        expect(json['title']).to eq('新規問い合わせ')
+      end
+
+      it 'auto-numbers position to MAX(position)+1 within the status' do
+        create(:inquiry, status: todo, priority: low, position: 5, title: 'existing')
+        post '/api/inquiries', params: body, as: :json
+        expect(JSON.parse(response.body)['position']).to eq(6)
+      end
+
+      it 'starts position at 1 when no inquiries exist in the status' do
+        post '/api/inquiries', params: body, as: :json
+        expect(JSON.parse(response.body)['position']).to eq(1)
+      end
+    end
+
+    context 'when priorityId is omitted' do
+      it 'defaults to the "低" (level=3) priority' do
+        post '/api/inquiries',
+             params: { statusId: todo.id, title: '優先度省略' },
+             as: :json
+        expect(response).to have_http_status(:created)
+        expect(JSON.parse(response.body)['priorityId']).to eq(low.id)
+      end
+    end
+
+    context 'when description is omitted' do
+      it 'creates an inquiry with null description' do
+        post '/api/inquiries',
+             params: { statusId: todo.id, title: '本文なし' },
+             as: :json
+        expect(response).to have_http_status(:created)
+        expect(JSON.parse(response.body)['description']).to be_nil
+      end
+    end
+
+    context 'when title is blank' do
+      it 'returns 422 with details for the title field' do
+        post '/api/inquiries',
+             params: { statusId: todo.id, title: '' },
+             as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json['error']).to eq('UNPROCESSABLE_ENTITY')
+        fields = json['details'].map { |d| d['field'] }
+        expect(fields).to include('title')
+      end
+    end
+
+    context 'when title exceeds 255 characters' do
+      it 'returns 422' do
+        post '/api/inquiries',
+             params: { statusId: todo.id, title: 'a' * 256 },
+             as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    context 'when statusId is missing' do
+      it 'returns 400 with details for statusId' do
+        post '/api/inquiries', params: { title: 'test' }, as: :json
+        expect(response).to have_http_status(:bad_request)
+        json = JSON.parse(response.body)
+        expect(json['error']).to eq('BAD_REQUEST')
+        expect(json['details'].first).to include('field' => 'statusId', 'reason' => 'required')
+      end
+    end
+
+    context 'when statusId does not exist' do
+      it 'returns 404' do
+        post '/api/inquiries',
+             params: { statusId: 999_999, title: 'test' },
+             as: :json
+        expect(response).to have_http_status(:not_found)
+        expect(JSON.parse(response.body)['error']).to eq('NOT_FOUND')
+      end
+    end
+
+    context 'when priorityId does not exist' do
+      it 'returns 404' do
+        post '/api/inquiries',
+             params: { statusId: todo.id, priorityId: 999_999, title: 'test' },
+             as: :json
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'with snake_case params (backwards compatible)' do
+      it 'accepts status_id / priority_id keys as well' do
+        post '/api/inquiries',
+             params: { status_id: todo.id, priority_id: medium.id, title: 'snake' },
+             as: :json
+        expect(response).to have_http_status(:created)
+        expect(JSON.parse(response.body)['statusId']).to eq(todo.id)
+      end
+    end
+  end
 end
