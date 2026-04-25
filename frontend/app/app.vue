@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import StatusColumns from '~/components/board/StatusColumns.vue'
+import BoardListView from '~/components/board/BoardListView.vue'
 </script>
 
 <template>
@@ -12,7 +12,7 @@ import StatusColumns from '~/components/board/StatusColumns.vue'
       </div>
     </header>
     <main class="mx-auto max-w-7xl px-6 py-6">
-      <StatusColumns />
+      <BoardListView />
     </main>
   </div>
 </template>
