@@ -19,12 +19,17 @@ jobs:
           MYSQL_DATABASE: inquiry_tracker_test
         ports:
           - 3306:3306
+        # GitHub Actions の services.options は docker create のフラグ専用なので、
+        # MySQL の起動引数（--default-authentication-plugin など）はここでは指定できない。
+        # Linux ランナーの libmysqlclient は caching_sha2_password に対応しているため、
+        # MySQL 8 のデフォルト認証のままで mysql2 gem は接続可能。
+        # （ローカル Windows での認証問題は MySQL Shell 同梱 libmysqlclient 由来で
+        #   Linux CI には影響しない）
         options: >-
           --health-cmd="mysqladmin ping -uroot -prootpass"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-          --default-authentication-plugin=mysql_native_password
 
     env:
       RAILS_ENV: test
