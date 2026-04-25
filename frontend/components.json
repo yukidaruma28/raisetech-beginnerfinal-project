@@ -1,25 +1,19 @@
 {
-  "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "radix-nova",
-  "rsc": true,
-  "tsx": true,
+  "$schema": "https://shadcn-vue.com/schema.json",
+  "style": "new-york",
+  "typescript": true,
   "tailwind": {
     "config": "",
-    "css": "app/globals.css",
+    "css": "app/assets/css/tailwind.css",
     "baseColor": "neutral",
-    "cssVariables": true,
-    "prefix": ""
+    "cssVariables": true
   },
-  "iconLibrary": "lucide",
-  "rtl": false,
   "aliases": {
     "components": "@/components",
+    "composables": "@/composables",
     "utils": "@/lib/utils",
     "ui": "@/components/ui",
-    "lib": "@/lib",
-    "hooks": "@/hooks"
+    "lib": "@/lib"
   },
-  "menuColor": "default",
-  "menuAccent": "subtle",
-  "registries": {}
+  "iconLibrary": "lucide"
 }

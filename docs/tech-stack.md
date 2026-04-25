@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| フロントエンド | Next.js 16（App Router）+ TypeScript |
+| フロントエンド | Nuxt 4（Vue 3 / SSR + SPA 混在）+ TypeScript |
 | バックエンド | Ruby on Rails 8.1（API mode） |
 | データベース | MySQL 8 |
 | 通信方式 | REST API（JSON） |
@@ -20,59 +20,61 @@
 
 | ライブラリ | バージョン | 選定理由 |
 |-----------|---------|---------|
-| Next.js | 16 | App Router + RSC + Server Actions の最新構成。SSR/SSG/ISR を選択可能で、ポートフォリオ価値が高い |
-| React | 19 | Next.js 16 が要求。Concurrent Features が安定版 |
+| Nuxt | 4 | Vue 3 のメタフレームワーク。ファイルベースルーティング・SSR・モジュール機構を備え、Next.js 相当のフルスタック構成を Vue で実現できる |
+| Vue | 3 | Composition API による宣言的な UI。React と並ぶ二大スタックで国内求人多く、ポートフォリオ価値が高い |
 | TypeScript | 5 | 型安全。API レスポンス型・DnD イベント型の明示でバグを早期検出 |
 
 ### ビルド・開発環境
 
 | ツール | バージョン | 選定理由 |
 |-------|---------|---------|
-| Node.js | 22 LTS | Next.js 16 が要求する最低ラインを満たす Active LTS |
-| npm | 10+ | パッケージマネージャー。Next.js 公式例が npm 中心のため揃える |
+| Node.js | 22 LTS | Nuxt 4 が要求する最低ラインを満たす Active LTS |
+| npm | 10+ | パッケージマネージャー。Nuxt 公式例が npm/pnpm 中心。本プロジェクトは npm に統一 |
+| Vite | 7 | Nuxt 4 が内部で利用するビルドツール。Turbopack のような独自バンドラーと違い、マルチバイトを含むパスでも安定動作する |
 
 ### スタイリング
 
 | ライブラリ | バージョン | 選定理由 |
 |-----------|---------|---------|
 | Tailwind CSS | 4 | ユーティリティファースト CSS。Linear 風の細かい UI 調整と相性が良い |
-| shadcn/ui | 最新 | Radix UI + Tailwind ベースのコンポーネント集。モーダル・セレクト・ダイアログを素早く整え、Linear 風の洗練された見た目を低コストで実現する（コピー配布方式のためロックインなし） |
-| lucide-react | 最新 | アイコンセット。shadcn/ui と相性良、Linear 的アイコン表現に使う |
+| shadcn-vue | 最新 | shadcn/ui の Vue 移植。Reka UI（Radix Vue 後継）+ Tailwind ベース。コピー配布方式のためロックインなし |
+| lucide-vue-next | 最新 | アイコンセット（lucide-react と同じデザイン体系の Vue 版）|
+| tw-animate-css | 最新 | shadcn-vue が要求するアニメーションユーティリティ |
 
 ### 状態管理・通信
 
 | ライブラリ | バージョン | 選定理由 |
 |-----------|---------|---------|
-| TanStack Query | 5 | サーバー状態管理。キャッシュ・再取得・楽観的更新を宣言的に記述できる。既存 raisetech_kanban でも採用しており、学習の連続性を確保 |
-| fetch（標準 API） | - | Next.js 16 の `fetch` + キャッシュ制御を優先。Axios は採用せず軽量に保つ |
+| @tanstack/vue-query | 5 | サーバー状態管理。React Query の Vue 版で同じ作者・同じ設計。キャッシュ・再取得・楽観的更新を宣言的に記述 |
+| fetch（標準 API） | - | Nuxt の `$fetch` または Web 標準の `fetch` を使う。Axios は採用せず軽量に保つ |
 
 ### フォーム・バリデーション
 
 | ライブラリ | バージョン | 選定理由 |
 |-----------|---------|---------|
-| React Hook Form | 7 | 非制御コンポーネントベースで再レンダー最小。問い合わせフォームとモーダル入力に適合 |
-| zod | 4 | TypeScript 型と同期するバリデーションスキーマ。API レスポンス検証にも流用可能 |
+| VeeValidate | 4 | Vue 用の宣言的フォームバリデーションライブラリ。スキーマ駆動 + Composable API |
+| @vee-validate/zod | 4 | VeeValidate を zod スキーマで駆動するアダプタ |
+| zod | 3 | TypeScript 型と同期するバリデーションスキーマ。@vee-validate/zod の peer 制約に合わせて 3 系を採用 |
 
 ### ドラッグ＆ドロップ
 
 | ライブラリ | バージョン | 選定理由 |
 |-----------|---------|---------|
-| @dnd-kit/core | 6 | アクセシビリティ対応 DnD。既存 raisetech_kanban でも採用実績あり、学習コストが低い |
-| @dnd-kit/sortable | 10 | ステータス列内・列間のソータブル UI を宣言的に構築 |
+| vue-draggable-plus | 最新 | Sortable.js ベースの Vue DnD。TypeScript 完全対応、Vue 3 / Nuxt 公式例あり、列間移動と列内並び替えを 1 ライブラリで完結 |
 
 ### コード品質
 
 | ツール | 用途 |
 |-------|------|
-| ESLint | 静的解析。Next.js 公式推奨設定を使用 |
+| ESLint | 静的解析。`@nuxt/eslint`（Nuxt 公式モジュール）を使用 |
 | Prettier | コードフォーマット統一 |
 
 ### テスト
 
 | ライブラリ | 用途 |
 |-----------|------|
-| Vitest | ユニットテストランナー |
-| React Testing Library | コンポーネントの振る舞いテスト |
+| Vitest | ユニットテストランナー（Vite ベースで Nuxt と相性良） |
+| @nuxt/test-utils | Nuxt 環境でのコンポーネント・ページテスト |
 | Playwright | E2E テスト（必要に応じて採用） |
 
 ---
@@ -178,11 +180,11 @@ frontend は libmysqlclient に依存しないため、ホスト側で `npm run 
 
 | サービス | ローカル | 本番 |
 |---------|---------|------|
-| Next.js | 3000 | 80 / 443（Nginx 前段） |
+| Nuxt | 3000 | 80 / 443（Nginx 前段） |
 | Rails API | 3001 | 内部ポートのみ |
 | MySQL | 3306 | RDS エンドポイント |
 
-ポート 3000 を Next.js に割り当てるため、Rails のデフォルト 3000 を 3001 に変更する。
+ポート 3000 を Nuxt に割り当てるため、Rails のデフォルト 3000 を 3001 に変更する。
 
 ---
 
@@ -190,14 +192,13 @@ frontend は libmysqlclient に依存しないため、ホスト側で `npm run 
 
 | 組み合わせ | 確認事項 |
 |-----------|---------|
-| Next.js 16 + React 19 | Next.js 16 は React 19 を要求 |
-| Next.js 16 + Tailwind CSS 4 | Tailwind 4 は PostCSS プラグイン（`@tailwindcss/postcss`）の利用に移行済み。`create-next-app` のデフォルト設定で対応 |
-| Next.js 16 + Turbopack | `next dev` のデフォルトは Turbopack だが、マルチバイトを含むパス（`デスクトップ` 等）でパニックする既知バグがあるため、本プロジェクトでは `next dev --webpack` を採用 |
+| Nuxt 4 + Vue 3 | Nuxt 4 は Vue 3.5+ を要求。Composition API の `<script setup>` を全面採用 |
+| Nuxt 4 + Tailwind CSS 4 | `@nuxtjs/tailwindcss`（v3 用モジュール）は使わず、`@tailwindcss/vite` を Nuxt の vite プラグインとして直接ロードする。CSS は `app/assets/css/tailwind.css` に `@import "tailwindcss"` |
+| Nuxt 4 + shadcn-vue | `shadcn-nuxt` モジュールを併用。`components.json` を手動配置し、`npx shadcn-vue@latest add <component>` でコンポーネントを追加 |
+| @vee-validate/zod + zod | @vee-validate/zod は zod v3 を peer に要求。zod v4 と組み合わせると ERESOLVE エラーになるため zod 3 系を採用 |
 | Rails 8.1 + Ruby 3.4 | 完全対応。Solid Queue / Cache / Cable と Kamal がデフォルト同梱 |
 | Rails 8.1 + mysql2 | `mysql2` 0.5 系で動作。MySQL 8 の `caching_sha2_password` で接続できない環境（特に Windows）では、サーバー側で `mysql_native_password` をデフォルト認証に切替して回避（`docker-compose.yml` の `command` で指定済み） |
 | jsonapi-serializer + ActiveRecord | `belongs_to` / `has_many` の eager_load を serializer 側で明示する |
-| @dnd-kit/core 6 + @dnd-kit/sortable 10 | core v6 と sortable v10 の組み合わせで動作確認済み（既存 raisetech_kanban と同じ） |
-| zod 4 | v3 から API が一部変更（`z.string().email()` → `z.email()` など）。v3 系のスニペットを流用する際は注意 |
 
 ---
 
@@ -207,7 +208,97 @@ frontend は libmysqlclient に依存しないため、ホスト側で `npm run 
 |------|----------|
 | Spring Boot / Java | 既存 raisetech_kanban で採用済み。スタック差分化が目的のため除外 |
 | PostgreSQL | 同上 |
-| Vite + React（SPA 構成） | 同上。Next.js に移行することで App Router / RSC の学習が加わる |
-| Server Actions 主体の構成 | バックエンドが Rails のため、Next.js 側は API クライアントとしての役割に徹する。Server Actions は将来的に一部 UI で検証する余地はある |
+| React / Next.js | 既存 raisetech_kanban が React 採用済み。本プロジェクトは Vue + Nuxt で**二刀流アピール**を狙う |
+| SvelteKit / Solid / Qwik | 求人市場が React/Vue より小さく、ポートフォリオの評価軸として弱い |
+| Angular | 全部入りで強力だが学習コストが高く、本プロジェクトの規模には過剰 |
+| Hotwire（Turbo + Stimulus） | フロント／バック分離 + REST API という設計方針と合わない |
+| Inertia.js | サーバー駆動の SPA 風。REST API 分離方針と合わない |
 | Devise / 認証系 Gem | 認証なしのため不要 |
 | ActionCable | リアルタイム同期は MVP 対象外 |
+| Pinia（Vuex 後継） | サーバー状態は Vue Query が担当、UI ローカル状態はコンポーネント内で完結する設計のため、現時点では不要 |
+
+---
+
+## 技術選定の理由
+
+このセクションは主要な意思決定の根拠と却下した代替案を残すための記録。後から「なぜこれを選んだのか」を辿れるようにしておく。
+
+### 1. フロントエンド: Vue 3 + Nuxt 4
+
+**選定の決め手**
+
+- **既存 raisetech_kanban との差別化**: 過去作品が React 採用のため、本作で Vue を選ぶことで「React と Vue の二刀流」をポートフォリオで提示できる
+- **国内求人での評価**: Vue は日本市場で React と並ぶ二大スタック。学習投資が回収しやすい
+- **メタフレームワークの恩恵**: ファイルベースルーティング、SSR、TypeScript 統合、モジュール機構など、Next.js 相当の機能が標準で揃う
+- **エコシステムの成熟**: shadcn-vue / vue-draggable-plus / @tanstack/vue-query などカンバンアプリに必要なライブラリが揃っている
+
+**却下した代替案**
+
+| 候補 | 却下理由 |
+|------|---------|
+| React + Next.js | 既存 raisetech_kanban で採用済み。差別化にならない |
+| SvelteKit | 書き味は良いが国内求人が React/Vue より少なく、ポートフォリオの市場評価が弱い |
+| Angular | 全部入りで強力だが学習コストが高く、初級編の最終課題には過剰 |
+| Vue 3 + Vite（SPA のみ） | Nuxt より軽量だが、メタフレームワーク経験のアピールができない |
+| Solid + SolidStart | React 風の書き味だが「React を使わない」という目的に対し JSX を書く違和感、また求人が極端に少ない |
+| Qwik + QwikCity | 革新的だが DnD ライブラリが未成熟、コミュニティ小、カンバン用途に不向き |
+
+### 2. バックエンド: Ruby on Rails 8.1（API mode）
+
+**選定の決め手**
+
+- **言語スタック差別化**: 既存 raisetech_kanban が Java/Spring Boot のため Ruby/Rails を選択
+- **API mode の軽量さ**: View 層を持たず JSON だけ返すため、フロント分離構成と整合
+- **ActiveRecord の生産性**: マイグレーション・ORM・seed が標準で揃う
+- **Rails 8 の同梱機能**: Solid Queue / Cache / Cable と Kamal がデフォルトで入り、追加の gem 選定が最小化される
+
+**却下した代替案**
+
+| 候補 | 却下理由 |
+|------|---------|
+| Spring Boot / Java | 既存採用済み。差別化目的 |
+| Express / NestJS | フロント（Node.js）と同言語のため学習多様性が下がる |
+| Go / Echo / Gin | 学習コスト高め、Rails ほどの「速い開発体験」が得られにくい |
+| FastAPI / Python | Python スタックは学習対象として有力だが、Ruby/Rails のほうが Web 向けの慣習が成熟しており、ポートフォリオ完成度を優先 |
+
+### 3. データベース: MySQL 8
+
+**選定の決め手**
+
+- **既存 raisetech_kanban が PostgreSQL** のため、別 DBMS を経験する目的で MySQL を選択
+- **AWS RDS の運用経験**を積みたい（既存 RDS インスタンス内に新 DB を同居）
+- **無料枠での運用しやすさ**
+
+**却下した代替案**
+
+| 候補 | 却下理由 |
+|------|---------|
+| PostgreSQL | 既存採用済み |
+| SQLite | 単一ファイルで手軽だが、本番 RDS 想定なら MySQL/PostgreSQL のほうが学習価値が高い |
+| MongoDB | リレーショナル設計（FK / JOIN）を学ぶ目的に合わない |
+
+### 4. インフラ: Docker + AWS EC2 + RDS
+
+**選定の決め手**
+
+- 既存 raisetech_kanban インスタンスとの**同居運用**でコストを抑えつつ AWS 操作経験を積む
+- Terraform で IaC を学ぶ
+- Docker により開発環境差を吸収（特に Windows の libmysqlclient 互換問題を回避）
+
+**却下した代替案**
+
+| 候補 | 却下理由 |
+|------|---------|
+| Vercel + Render / Fly.io | 楽だが AWS 操作経験が積めない |
+| Heroku | 無料枠廃止後コストパフォーマンスが悪い |
+| Kubernetes / EKS | 規模に対してオーバーキル |
+
+### 5. 個別ライブラリの判断
+
+| ライブラリ | 採用理由 | 却下した代替 |
+|---|---|---|
+| shadcn-vue | コピー配布でロックインなし、Linear 風 UI を最小工数で組める | Element Plus / Vuetify（重い・自由度が低い）、Naive UI（評価軸として弱い） |
+| @tanstack/vue-query | サーバー状態管理のデファクト、React Query と同設計で学習資産流用可 | Pinia（サーバー状態に向かない）、Apollo Client（GraphQL 前提） |
+| vue-draggable-plus | TS 完全対応の Sortable.js ラッパー、Vue 3 公式例多数 | Vue.Draggable（旧版、メンテ停滞）、Vue.Draggable.Next（TS 弱い） |
+| VeeValidate + zod | スキーマ駆動でバリデーション宣言が明確、Rails 側のバリデーションと意図を揃えやすい | FormKit（独自概念多い）、手動 reactive（バリデーション再実装になる） |
+| jsonapi-serializer | Rails 側で camelCase 変換と関連 includes を一元化 | active_model_serializers（メンテ停滞）、blueprinter（軽量だが Rails 8 例が少ない） |
