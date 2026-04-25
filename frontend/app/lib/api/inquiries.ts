@@ -40,3 +40,16 @@ export async function updateInquiry(id: number, input: UpdateInquiryInput): Prom
 export async function deleteInquiry(id: number): Promise<void> {
   await apiFetch<undefined>(`/api/inquiries/${id}`, { method: 'DELETE' })
 }
+
+// DnD 用の移動入力。position は移動先 status 内の 1-indexed の希望順位。
+export interface MoveInquiryInput {
+  statusId: number
+  position: number
+}
+
+export async function moveInquiry(id: number, input: MoveInquiryInput): Promise<Inquiry> {
+  return apiFetch<Inquiry>(`/api/inquiries/${id}/move`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}

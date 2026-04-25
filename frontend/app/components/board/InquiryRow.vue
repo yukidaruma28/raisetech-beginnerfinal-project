@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { GripVertical } from 'lucide-vue-next'
 import type { Inquiry } from '~/types/inquiry'
 import type { Status } from '~/types/status'
 import type { Priority } from '~/types/priority'
@@ -37,6 +38,21 @@ function formatDate(iso: string | undefined): string {
     @click="emit('open', inquiry)"
     @keydown.enter.space.prevent="emit('open', inquiry)"
   >
+    <!--
+      ドラッグハンドル。data-drag-handle を vue-draggable-plus の handle セレクタで拾う。
+      hover 時のみ表示し、@click.stop で行クリック（編集モーダル）から伝播を遮断。
+      handle 配下の要素も Sortable.js が drag 起点として認識するので、アイコン全体が
+      data 属性配下に入っていれば OK。
+    -->
+    <span
+      data-drag-handle
+      class="shrink-0 cursor-grab text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+      :aria-label="`タスク ${inquiry.id} を並び替え`"
+      @click.stop
+    >
+      <GripVertical class="h-4 w-4" />
+    </span>
+
     <input
       type="checkbox"
       class="h-4 w-4 shrink-0 cursor-pointer rounded border-border opacity-0 transition-opacity group-hover:opacity-100"

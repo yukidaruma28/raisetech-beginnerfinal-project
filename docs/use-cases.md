@@ -18,7 +18,7 @@
 | UC-02 | 問い合わせを作成する | I-1 | ✅ 実装済み（ヘッダー右上「+ 新規」モーダルから作成）|
 | UC-03 | 問い合わせ詳細を編集する | I-3 | ✅ 実装済み（行クリックで詳細モーダル / inline-edit + auto-save）|
 | UC-04 | 問い合わせを削除する | I-4 | ✅ 実装済み（編集モーダル右上の削除ボタン → 確認ダイアログ）|
-| UC-05 | 問い合わせをDnDで移動する | I-5 | ⏳ 未実装 |
+| UC-05 | 問い合わせをDnDで移動する | I-5 | ✅ 実装済み（vue-draggable-plus + 楽観的更新、列またぎ可、dense int 再採番）|
 | UC-06 | ステータスを作成する | S-1 | ⏳ 未実装 |
 | UC-07 | ステータスを編集する | S-2 | ⏳ 未実装 |
 | UC-08 | ステータスを削除する | S-3 | ⏳ 未実装 |
@@ -147,14 +147,23 @@
 | 事後条件 | 問い合わせが指定したステータス列・位置に移動し、ステータスと position が更新されている |
 
 **基本フロー**
-1. ユーザーが問い合わせカードをドラッグする
-2. ドラッグ中、ドロップ先にプレースホルダーが表示される
+1. ユーザーが行の左端のドラッグハンドル（lucide `GripVertical`）にカーソルを合わせる
+2. ハンドルをドラッグ → 元の行が半透明、ドロップ先にプレースホルダーが表示
 3. ユーザーが目的のステータス列・位置にドロップする
-4. システムが `PATCH /api/inquiries/{id}/move` を呼び出す（新しい status_id と position）
-5. 問い合わせが新しい位置に表示される
+4. UI は楽観的に即時並び替え（vue-query `setQueryData`）
+5. 裏で `PATCH /api/inquiries/:id/move` を呼び出し（body: `{ statusId, position }`、`position` は 1-indexed）
+6. サーバはトランザクション内で元 status / 新 status の inquiries を **dense int 採番**（1, 2, 3, ...）で一括再計算し、影響を受ける行の position を `update_columns` で更新
+7. 成功したら `invalidateQueries(['inquiries'])` で最終整合（万一ずれてもサーバ値で上書き）
 
 **代替フロー**
-- 3-a: 元の位置にドロップした場合、位置は変わらず API は呼び出さない
+- 3-a: 元の位置にドロップ（同列内 oldIndex === newIndex）→ API を呼ばない（noop）
+- 5-a: PATCH が失敗した場合、楽観的更新を rollback して **snap back**。Toast は出さず、`console.warn` でデバッグ可能にしておく
+- 7-a: 同時編集の競合制御は MVP スコープ外（シングルユーザー前提）
+
+> **MVP スコープ外（後続 Issue へ）**
+> - Status 列ヘッダーの DnD 並び替え（UC-07 で別途）
+> - Toast 通知 / Undo
+> - キーボードによるドラッグ（aria-grabbed 等）
 
 ---
 

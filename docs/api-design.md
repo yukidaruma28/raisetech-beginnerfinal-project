@@ -21,7 +21,7 @@
 | `POST /api/inquiries` | ✅ 実装済み（UC-02、`priorityId` 省略時「低」自動割当・`position` 自動採番）|
 | `PATCH /api/inquiries/:id` | ✅ 実装済み（UC-03、部分更新・camelCase/snake_case 双方対応・`position` は据え置き）|
 | `DELETE /api/inquiries/:id` | ✅ 実装済み（UC-04、204 No Content・物理削除）|
-| `PATCH /api/inquiries/:id/move` | ⏳ 未実装（UC-05 で実装予定）|
+| `PATCH /api/inquiries/:id/move` | ✅ 実装済み（UC-05、DnD 移動、トランザクション内で dense int 再採番）|
 | `/api/statuses` の `POST` / `PATCH` / `DELETE` | ⏳ 未実装（UC-06〜08 で実装予定）|
 | `/api/priorities` の `POST` / `PATCH` / `DELETE` | ❌ **MVP スコープ外**（3 段階固定運用、`docs/tech-stack.md` 参照）|
 | `/api/labels` 系 | ❌ MVP スコープ外（`docs/tech-stack.md` 参照）|

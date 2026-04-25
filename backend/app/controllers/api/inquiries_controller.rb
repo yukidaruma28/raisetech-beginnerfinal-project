@@ -73,6 +73,63 @@ module Api
       head :no_content
     end
 
+    # PATCH /api/inquiries/:id/move
+    # DnD 用エンドポイント。statusId（移動先）と position（1-indexed）を受け取り、
+    # トランザクション内で影響を受ける status の inquiries を dense int で再採番する。
+    # 列をまたぐ移動の場合は元 status / 新 status の双方を 1, 2, 3, ... に詰める。
+    def move
+      inquiry = Inquiry.find(params[:id])
+      attrs = move_params
+
+      return render_bad_request(
+        message: "statusId は必須です",
+        details: [ { field: "statusId", reason: "required" } ]
+      ) if attrs[:status_id].blank?
+
+      return render_bad_request(
+        message: "position は必須です",
+        details: [ { field: "position", reason: "required" } ]
+      ) if attrs[:position].blank?
+
+      target_position = attrs[:position].to_i
+      return render_bad_request(
+        message: "position は 1 以上で指定してください",
+        details: [ { field: "position", reason: "must_be_positive" } ]
+      ) if target_position < 1
+
+      target_status = Status.find(attrs[:status_id])
+
+      Inquiry.transaction do
+        old_status_id = inquiry.status_id
+
+        if old_status_id != target_status.id
+          inquiry.update!(status_id: target_status.id)
+        end
+
+        # 移動先 status の siblings（自分以外）を position 順で取得し、
+        # target_position の位置に挿入してから dense int で 1 から再採番する。
+        siblings = Inquiry
+          .where(status_id: target_status.id)
+          .where.not(id: inquiry.id)
+          .order(:position, :id)
+          .to_a
+        insert_index = [ target_position - 1, siblings.size ].min
+        siblings.insert(insert_index, inquiry)
+        renumber!(siblings)
+
+        # 列をまたいだ場合、元 status の残りも詰めて再採番する。
+        if old_status_id != target_status.id
+          old_siblings = Inquiry
+            .where(status_id: old_status_id)
+            .order(:position, :id)
+            .to_a
+          renumber!(old_siblings)
+        end
+      end
+
+      render json: serialize_record(inquiry.reload)
+    end
+
     private
 
     # フロントは camelCase で送る（statusId / priorityId）ため、permit 後に
@@ -91,6 +148,27 @@ module Api
         result[:priority_id] = raw[:priority_id].presence || raw[:priorityId].presence
       end
       result
+    end
+
+    # move 用の小さい正規化。statusId / position を受け取る。
+    # 他のアクションは normalized_params を使うが、move は title/description を見ない。
+    def move_params
+      raw = params.permit(:statusId, :status_id, :position)
+      {
+        status_id: raw[:status_id].presence || raw[:statusId].presence,
+        position: raw[:position]
+      }
+    end
+
+    # 渡された配列の順番で position を 1, 2, 3, ... に詰める。
+    # update_columns で callback / updated_at / バリデーションを skip し、再採番のたびに
+    # timestamp を進めて UI の安定ソートを乱さない。position カラムには CHECK 制約しか
+    # 無いため validation skip でも安全。
+    def renumber!(records)
+      records.each_with_index do |record, i|
+        new_position = i + 1
+        record.update_columns(position: new_position) if record.position != new_position
+      end
     end
 
     # priority_id 未指定の場合は「低」(level=3) を返す。指定があれば該当 id を引く。

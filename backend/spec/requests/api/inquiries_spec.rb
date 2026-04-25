@@ -378,4 +378,124 @@ RSpec.describe 'Api::Inquiries', type: :request do
       end
     end
   end
+
+  describe 'PATCH /api/inquiries/:id/move' do
+    let!(:backlog) { create(:status, name: 'Backlog', color: '#95A5A6', position: 0) }
+    let!(:todo)    { create(:status, name: 'Todo',    color: '#3498DB', position: 1) }
+    let!(:low)     { create(:priority, level: 3, name: '低', color: '#3498DB', position: 0) }
+
+    # 同列内に 3 件
+    let!(:b1) { create(:inquiry, status: backlog, priority: low, title: 'B1', position: 1) }
+    let!(:b2) { create(:inquiry, status: backlog, priority: low, title: 'B2', position: 2) }
+    let!(:b3) { create(:inquiry, status: backlog, priority: low, title: 'B3', position: 3) }
+
+    context 'within the same status (move B3 to position 1)' do
+      it 'returns 200 and reorders dense ints' do
+        patch "/api/inquiries/#{b3.id}/move",
+              params: { statusId: backlog.id, position: 1 }, as: :json
+        expect(response).to have_http_status(:ok)
+
+        backlog_titles = Inquiry.where(status_id: backlog.id).order(:position).pluck(:title)
+        expect(backlog_titles).to eq([ 'B3', 'B1', 'B2' ])
+        expect(Inquiry.where(status_id: backlog.id).order(:position).pluck(:position))
+          .to eq([ 1, 2, 3 ])
+      end
+    end
+
+    context 'across columns (move B2 from backlog to todo position 1)' do
+      let!(:t1) { create(:inquiry, status: todo, priority: low, title: 'T1', position: 1) }
+      let!(:t2) { create(:inquiry, status: todo, priority: low, title: 'T2', position: 2) }
+
+      it 'updates statusId and renumbers both columns' do
+        patch "/api/inquiries/#{b2.id}/move",
+              params: { statusId: todo.id, position: 1 }, as: :json
+        expect(response).to have_http_status(:ok)
+
+        b2.reload
+        expect(b2.status_id).to eq(todo.id)
+        expect(b2.position).to eq(1)
+
+        # 元の Backlog 列は B1, B3 を 1, 2 で詰める
+        expect(Inquiry.where(status_id: backlog.id).order(:position).pluck(:title))
+          .to eq([ 'B1', 'B3' ])
+        expect(Inquiry.where(status_id: backlog.id).order(:position).pluck(:position))
+          .to eq([ 1, 2 ])
+
+        # 移動先 Todo 列は B2, T1, T2 を 1, 2, 3 で詰める
+        expect(Inquiry.where(status_id: todo.id).order(:position).pluck(:title))
+          .to eq([ 'B2', 'T1', 'T2' ])
+        expect(Inquiry.where(status_id: todo.id).order(:position).pluck(:position))
+          .to eq([ 1, 2, 3 ])
+      end
+    end
+
+    context 'when target_position is larger than siblings size' do
+      it 'clamps to the tail position' do
+        patch "/api/inquiries/#{b1.id}/move",
+              params: { statusId: backlog.id, position: 999 }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(Inquiry.where(status_id: backlog.id).order(:position).pluck(:title))
+          .to eq([ 'B2', 'B3', 'B1' ])
+      end
+    end
+
+    context 'when moving to its current position' do
+      it 'returns 200 and leaves order unchanged' do
+        patch "/api/inquiries/#{b1.id}/move",
+              params: { statusId: backlog.id, position: 1 }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(Inquiry.where(status_id: backlog.id).order(:position).pluck(:title))
+          .to eq([ 'B1', 'B2', 'B3' ])
+      end
+    end
+
+    context 'with snake_case params' do
+      it 'accepts status_id key' do
+        patch "/api/inquiries/#{b1.id}/move",
+              params: { status_id: backlog.id, position: 3 }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(Inquiry.where(status_id: backlog.id).order(:position).pluck(:title))
+          .to eq([ 'B2', 'B3', 'B1' ])
+      end
+    end
+
+    context 'when statusId is missing' do
+      it 'returns 400' do
+        patch "/api/inquiries/#{b1.id}/move", params: { position: 1 }, as: :json
+        expect(response).to have_http_status(:bad_request)
+        expect(JSON.parse(response.body)['error']).to eq('BAD_REQUEST')
+      end
+    end
+
+    context 'when position is missing' do
+      it 'returns 400' do
+        patch "/api/inquiries/#{b1.id}/move", params: { statusId: backlog.id }, as: :json
+        expect(response).to have_http_status(:bad_request)
+      end
+    end
+
+    context 'when position is 0 or negative' do
+      it 'returns 400' do
+        patch "/api/inquiries/#{b1.id}/move",
+              params: { statusId: backlog.id, position: 0 }, as: :json
+        expect(response).to have_http_status(:bad_request)
+      end
+    end
+
+    context 'when statusId does not exist' do
+      it 'returns 404' do
+        patch "/api/inquiries/#{b1.id}/move",
+              params: { statusId: 999_999, position: 1 }, as: :json
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'when the inquiry does not exist' do
+      it 'returns 404' do
+        patch '/api/inquiries/999999/move',
+              params: { statusId: backlog.id, position: 1 }, as: :json
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
 end
