@@ -2,7 +2,7 @@
 
 Linear 風の問い合わせ管理アプリ。RaiseTech 初級編 最終課題としてのポートフォリオ作品。
 
-- **スタック**: Ruby on Rails 8.1（API mode）/ Next.js 16（App Router）/ MySQL 8
+- **スタック**: Ruby on Rails 8.1（API mode）/ Nuxt 4（Vue 3）/ MySQL 8
 - **要件・設計**: [docs/requirements.md](docs/requirements.md) を起点にすべての設計ドキュメントを参照
 - **開発者向けガイド**: [CLAUDE.md](CLAUDE.md)（Claude Code が自動で読む。人間も参照可）
 
@@ -102,25 +102,28 @@ bundle exec rails server -p 3001
 # → http://localhost:3001
 ```
 
-### 4. フロントエンド（Next.js）を scaffold する
+### 4. フロントエンド（Nuxt 4 / Vue 3）を scaffold する
 
 ```bash
 # プロジェクトルートに戻って
 cd ..
 
-npx create-next-app@latest frontend \
-  --typescript --tailwind --app --eslint \
-  --src-dir=false --import-alias="@/*" \
-  --use-npm
+npx nuxi@latest init frontend --template minimal --packageManager npm --gitInit false
 
 cd frontend
+npm install
 
 # 依存ライブラリ追加
-npm install @tanstack/react-query @dnd-kit/core @dnd-kit/sortable \
-            react-hook-form zod lucide-react
+npm install @tanstack/vue-query vue-draggable-plus zod@^3.25.0 \
+            lucide-vue-next vee-validate @vee-validate/zod \
+            clsx tailwind-merge class-variance-authority reka-ui
 
-# shadcn/ui 初期化（対話式に進める）
-npx shadcn@latest init
+# Tailwind v4（Nuxt 4 用に Vite プラグイン直接ロード）
+npm install -D tailwindcss @tailwindcss/vite tw-animate-css shadcn-nuxt
+
+# shadcn-vue 初期化（components.json を手動配置 + 必要に応じて add）
+# 詳細は frontend/components.json と frontend/nuxt.config.ts を参照
+npx shadcn-vue@latest add card
 
 # 起動確認（ポート 3000）
 npm run dev
