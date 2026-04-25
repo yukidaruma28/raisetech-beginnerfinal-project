@@ -47,6 +47,12 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     throw new ApiError(res.status, payload, message)
   }
 
+  // 204 No Content / 205 Reset Content は body 無しなので JSON.parse すると失敗する。
+  // 呼び出し側が void を期待している前提で undefined を返す。
+  if (res.status === 204 || res.status === 205) {
+    return undefined as T
+  }
+
   return res.json() as Promise<T>
 }
 

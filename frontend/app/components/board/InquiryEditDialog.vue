@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { Trash2 } from 'lucide-vue-next'
 
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 
 import { ApiError, type ApiErrorDetail } from '~/lib/api/client'
-import { updateInquiry, type UpdateInquiryInput } from '~/lib/api/inquiries'
+import { deleteInquiry, updateInquiry, type UpdateInquiryInput } from '~/lib/api/inquiries'
 import { createInquirySchema } from '~/lib/validation/inquiry'
 import type { Inquiry } from '~/types/inquiry'
 import type { Priority } from '~/types/priority'
@@ -146,6 +149,39 @@ function humanizeReason(field: string, reason: string): string {
   return reason
 }
 
+// ========== 削除フロー ==========
+// 確認ダイアログを編集モーダルに重ねて出す。Dialog のネストは reka-ui で問題なく動作する。
+const confirmingDelete = ref(false)
+
+const deleteMutation = useMutation({
+  mutationFn: () => deleteInquiry(props.inquiry.id),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['inquiries'] })
+    confirmingDelete.value = false
+    open.value = false
+  },
+  onError: (err) => {
+    // 404（他クライアントで先に削除済み）の場合も「もう存在しない」=「目的達成」として閉じる。
+    if (err instanceof ApiError && err.status === 404) {
+      queryClient.invalidateQueries({ queryKey: ['inquiries'] })
+      confirmingDelete.value = false
+      open.value = false
+      return
+    }
+    genericError.value = err instanceof Error ? err.message : '削除に失敗しました'
+    confirmingDelete.value = false
+  },
+})
+
+function requestDelete() {
+  if (deleteMutation.isPending.value || mutation.isPending.value) return
+  confirmingDelete.value = true
+}
+
+function confirmDelete() {
+  deleteMutation.mutate()
+}
+
 // ========== display helpers ==========
 const taskCode = computed(() => `TASK-${props.inquiry.id}`)
 const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '本文なし')
@@ -155,9 +191,23 @@ const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '
   <Dialog v-model:open="open">
     <DialogContent class="sm:max-w-[640px]">
       <DialogHeader>
-        <DialogTitle class="font-mono text-sm text-muted-foreground">
-          {{ taskCode }}
-        </DialogTitle>
+        <div class="flex items-center gap-2 pr-8">
+          <DialogTitle class="font-mono text-sm text-muted-foreground">
+            {{ taskCode }}
+          </DialogTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            class="ml-auto text-red-600 hover:bg-red-50 hover:text-red-700"
+            :disabled="deleteMutation.isPending.value || mutation.isPending.value"
+            :aria-label="`${taskCode} を削除`"
+            @click="requestDelete"
+          >
+            <Trash2 class="h-4 w-4" />
+            削除
+          </Button>
+        </div>
         <DialogDescription class="sr-only">
           問い合わせを編集します。各フィールドをクリックして編集すると、フォーカスを外したときに自動保存されます。
         </DialogDescription>
@@ -281,6 +331,41 @@ const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '
           保存中…
         </p>
       </div>
+    </DialogContent>
+  </Dialog>
+
+  <!--
+    削除確認ダイアログ。Dialog をネストする形で reka-ui Portal が積み重なる。
+    キャンセル / 削除（破壊的操作なので赤）の 2 ボタン。
+  -->
+  <Dialog v-model:open="confirmingDelete">
+    <DialogContent class="sm:max-w-[420px]">
+      <DialogHeader>
+        <DialogTitle class="text-base">
+          {{ taskCode }} を削除しますか？
+        </DialogTitle>
+        <DialogDescription>
+          この問い合わせは復元できません。本当に削除してよろしいですか？
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          :disabled="deleteMutation.isPending.value"
+          @click="confirmingDelete = false"
+        >
+          キャンセル
+        </Button>
+        <Button
+          type="button"
+          class="bg-red-600 text-white hover:bg-red-700"
+          :disabled="deleteMutation.isPending.value"
+          @click="confirmDelete"
+        >
+          {{ deleteMutation.isPending.value ? '削除中…' : '削除' }}
+        </Button>
+      </DialogFooter>
     </DialogContent>
   </Dialog>
 </template>

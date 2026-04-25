@@ -63,6 +63,16 @@ module Api
       end
     end
 
+    # DELETE /api/inquiries/:id
+    # 物理削除。シングルユーザー前提のためソフトデリートは導入しない。
+    # 未存在 id は ActiveRecord::RecordNotFound 経由で 404（BaseController で整形）。
+    # 成功時は 204 No Content（body なし）。
+    def destroy
+      inquiry = Inquiry.find(params[:id])
+      inquiry.destroy!
+      head :no_content
+    end
+
     private
 
     # フロントは camelCase で送る（statusId / priorityId）ため、permit 後に

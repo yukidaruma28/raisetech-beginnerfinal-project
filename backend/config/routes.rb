@@ -8,7 +8,7 @@ Rails.application.routes.draw do
   namespace :api do
     resources :statuses,   only: [ :index ]
     resources :priorities, only: [ :index ]
-    resources :inquiries,  only: [ :index, :create, :update ]
+    resources :inquiries,  only: [ :index, :create, :update, :destroy ]
   end
 
   # Defines the root path route ("/")
