@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ChevronRight } from 'lucide-vue-next'
+import { VueDraggable } from 'vue-draggable-plus'
 import { fetchStatuses } from '~/lib/api/statuses'
 import { fetchPriorities } from '~/lib/api/priorities'
-import { fetchInquiries } from '~/lib/api/inquiries'
+import { fetchInquiries, moveInquiry, type MoveInquiryInput } from '~/lib/api/inquiries'
 import type { Status } from '~/types/status'
 import type { Priority } from '~/types/priority'
 import type { Inquiry } from '~/types/inquiry'
@@ -66,6 +67,21 @@ const inquiriesByStatus = computed<Record<number, Inquiry[]>>(() => {
   return map
 })
 
+// VueDraggable は v-model で双方向バインドを要求するため、status ごとのローカル配列を持つ。
+// inquiriesByStatus が更新されたら都度ローカルへ反映する（楽観的更新後の setQueryData も
+// inquiriesByStatus 経由で流れてくる想定）。
+const localLists = ref<Record<number, Inquiry[]>>({})
+watch(
+  inquiriesByStatus,
+  (next) => {
+    localLists.value = {}
+    for (const [statusId, list] of Object.entries(next)) {
+      localLists.value[Number(statusId)] = [...list]
+    }
+  },
+  { immediate: true, deep: true },
+)
+
 const openMap = ref<Record<number, boolean>>({})
 
 watch(
@@ -91,8 +107,6 @@ function priorityFor(inquiry: Inquiry): Priority | undefined {
 }
 
 // 詳細編集モーダルで開いている問い合わせ。クリックされた InquiryRow から渡される。
-// invalidate 後の再取得でリストが更新された際は、id で最新の Inquiry を引き直すことで
-// モーダル内の表示もリスト側の値に追従させる。
 const editingId = ref<number | null>(null)
 const editingInquiry = computed<Inquiry | null>(() => {
   if (editingId.value == null) return null
@@ -105,6 +119,95 @@ function openEdit(inquiry: Inquiry) {
 
 function closeEdit() {
   editingId.value = null
+}
+
+// ========== DnD ==========
+const queryClient = useQueryClient()
+
+const moveMutation = useMutation({
+  mutationFn: ({ id, statusId, position }: { id: number } & MoveInquiryInput) =>
+    moveInquiry(id, { statusId, position }),
+  onMutate: async ({ id, statusId, position }) => {
+    // 進行中の fetch をキャンセルしてからキャッシュを書き換える（後勝ちでちらつくのを防ぐ）。
+    await queryClient.cancelQueries({ queryKey: ['inquiries'] })
+    const prev = queryClient.getQueryData<Inquiry[]>(['inquiries'])
+    if (prev) {
+      queryClient.setQueryData<Inquiry[]>(
+        ['inquiries'],
+        optimisticReorder(prev, id, statusId, position),
+      )
+    }
+    return { prev }
+  },
+  onError: (err, _vars, context) => {
+    if (context?.prev) queryClient.setQueryData(['inquiries'], context.prev)
+    // Toast は導入しないので console.warn でデバッグ可能にしておく。
+    console.warn('Failed to move inquiry:', err)
+  },
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ['inquiries'] })
+  },
+})
+
+// VueDraggable の @end ハンドラ。
+// event.item は DOM 要素で、InquiryRow root に付けた data-inquiry-id から id を取得。
+// event.to は移動先 VueDraggable の DOM、data-status-id 属性で新ステータスを判定。
+// event.newIndex は 0-indexed なので +1 して 1-indexed の position に変換。
+function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: number, oldIndex?: number, from: HTMLElement }) {
+  const movedId = Number(event.item.dataset.inquiryId)
+  const newStatusId = Number((event.to as HTMLElement).dataset.statusId)
+  const newPosition = (event.newIndex ?? 0) + 1
+  if (!Number.isFinite(movedId) || !Number.isFinite(newStatusId)) return
+
+  // 同列内で同じ位置にドロップ → 何もしない。
+  if (event.from === event.to && event.oldIndex === event.newIndex) return
+
+  moveMutation.mutate({ id: movedId, statusId: newStatusId, position: newPosition })
+}
+
+// 純関数：サーバ側 dense int 採番と同じロジックで vue-query キャッシュを並び替える。
+function optimisticReorder(
+  inquiries: Inquiry[],
+  movedId: number,
+  newStatusId: number,
+  newPosition: number,
+): Inquiry[] {
+  const moved = inquiries.find(i => i.id === movedId)
+  if (!moved) return inquiries
+  const oldStatusId = moved.statusId
+
+  // status_id ごとに分けつつ、自分は除外。
+  const byStatus = new Map<number, Inquiry[]>()
+  for (const inq of inquiries) {
+    if (inq.id === movedId) continue
+    const list = byStatus.get(inq.statusId) ?? []
+    list.push(inq)
+    byStatus.set(inq.statusId, list)
+  }
+  for (const list of byStatus.values()) {
+    list.sort((a, b) => a.position - b.position || a.id - b.id)
+  }
+
+  // 移動先に挿入。
+  const target = byStatus.get(newStatusId) ?? []
+  const insertIndex = Math.min(Math.max(0, newPosition - 1), target.length)
+  target.splice(insertIndex, 0, { ...moved, statusId: newStatusId })
+  byStatus.set(newStatusId, target)
+
+  // dense int で再採番（移動先 / 元 status の両方）。
+  const renumber = (list: Inquiry[]) => list.map((inq, i) => ({ ...inq, position: i + 1 }))
+  byStatus.set(newStatusId, renumber(byStatus.get(newStatusId) ?? []))
+  if (oldStatusId !== newStatusId) {
+    byStatus.set(oldStatusId, renumber(byStatus.get(oldStatusId) ?? []))
+  }
+
+  // flat。サーバ index 側は status_id, position, id 順なので一応それで並べる。
+  const result: Inquiry[] = []
+  const sortedStatusIds = [...byStatus.keys()].sort((a, b) => a - b)
+  for (const sid of sortedStatusIds) {
+    result.push(...(byStatus.get(sid) ?? []))
+  }
+  return result
 }
 </script>
 
@@ -153,14 +256,33 @@ function closeEdit() {
           >
             該当なし
           </div>
-          <InquiryRow
-            v-for="inquiry in inquiriesByStatus[status.id] ?? []"
-            :key="inquiry.id"
-            :inquiry="inquiry"
-            :status="status"
-            :priority="priorityFor(inquiry)"
-            @open="openEdit"
-          />
+          <!--
+            VueDraggable は SSR で document を触る可能性があるので ClientOnly で包む。
+            data-status-id を root に付けて、@end の event.to から新ステータスを取得する。
+            handle セレクタで GripVertical アイコンだけドラッグ起点に限定。
+          -->
+          <ClientOnly>
+            <VueDraggable
+              v-if="localLists[status.id]"
+              v-model="localLists[status.id]!"
+              :data-status-id="status.id"
+              :animation="150"
+              group="inquiries"
+              handle="[data-drag-handle]"
+              ghost-class="opacity-30"
+              @end="handleDragEnd"
+            >
+              <InquiryRow
+                v-for="inquiry in (localLists[status.id] ?? [])"
+                :key="inquiry.id"
+                :data-inquiry-id="inquiry.id"
+                :inquiry="inquiry"
+                :status="status"
+                :priority="priorityFor(inquiry)"
+                @open="openEdit"
+              />
+            </VueDraggable>
+          </ClientOnly>
         </div>
       </div>
     </div>
