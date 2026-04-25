@@ -10,7 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_25_041449) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_25_140844) do
+  create_table "inquiries", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.integer "position", default: 0, null: false
+    t.bigint "status_id", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status_id", "position"], name: "idx_inquiries_status_position"
+    t.index ["status_id"], name: "index_inquiries_on_status_id"
+    t.check_constraint "`position` >= 0", name: "chk_inquiries_position"
+    t.check_constraint "char_length(`title`) > 0", name: "chk_inquiries_title"
+  end
+
   create_table "statuses", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "color", limit: 7, null: false
     t.datetime "created_at", null: false
@@ -22,4 +35,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_25_041449) do
     t.check_constraint "char_length(`name`) > 0", name: "chk_statuses_name"
     t.check_constraint "regexp_like(`color`,_utf8mb4'^#[0-9A-Fa-f]{6}$')", name: "chk_statuses_color"
   end
+
+  add_foreign_key "inquiries", "statuses"
 end
