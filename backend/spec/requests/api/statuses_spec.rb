@@ -340,4 +340,76 @@ RSpec.describe 'Api::Statuses', type: :request do
       end
     end
   end
+
+  describe 'PATCH /api/statuses/:id' do
+    let!(:status) { create(:status, name: '見たい', color: '#3498DB', position: 0) }
+
+    context 'with valid name and color' do
+      it 'returns 200' do
+        patch "/api/statuses/#{status.id}", params: { name: '視聴済み', color: '#2ECC71' }, as: :json
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'updates both fields' do
+        patch "/api/statuses/#{status.id}", params: { name: '視聴済み', color: '#2ECC71' }, as: :json
+        json = JSON.parse(response.body)
+        expect(json['name']).to eq('視聴済み')
+        expect(json['color']).to eq('#2ECC71')
+      end
+
+      it 'returns camelCase keys' do
+        patch "/api/statuses/#{status.id}", params: { name: '更新' }, as: :json
+        json = JSON.parse(response.body)
+        expect(json.keys).to match_array(%w[id name color position])
+      end
+    end
+
+    context 'with only name' do
+      it 'updates name and keeps color' do
+        patch "/api/statuses/#{status.id}", params: { name: '断念' }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)['name']).to eq('断念')
+        expect(JSON.parse(response.body)['color']).to eq('#3498DB')
+      end
+    end
+
+    context 'with only color' do
+      it 'updates color and keeps name' do
+        patch "/api/statuses/#{status.id}", params: { color: '#E74C3C' }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)['color']).to eq('#E74C3C')
+        expect(JSON.parse(response.body)['name']).to eq('見たい')
+      end
+    end
+
+    context 'with no updatable params' do
+      it 'returns 400' do
+        patch "/api/statuses/#{status.id}", params: {}, as: :json
+        expect(response).to have_http_status(:bad_request)
+      end
+    end
+
+    context 'with blank name' do
+      it 'returns 422' do
+        patch "/api/statuses/#{status.id}", params: { name: '' }, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json['error']).to eq('UNPROCESSABLE_ENTITY')
+      end
+    end
+
+    context 'with invalid color format' do
+      it 'returns 422' do
+        patch "/api/statuses/#{status.id}", params: { color: 'red' }, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    context 'when status does not exist' do
+      it 'returns 404' do
+        patch '/api/statuses/999999', params: { name: 'test' }, as: :json
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
 end
