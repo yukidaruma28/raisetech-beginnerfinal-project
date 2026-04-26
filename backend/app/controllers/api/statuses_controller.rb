@@ -43,6 +43,28 @@ module Api
       end
     end
 
+    # PATCH /api/statuses/:id/move
+    # body: { position: <1-indexed> }
+    # Inquiry#move と同パターン（dense int 再採番、0-indexed で保存）。
+    def move
+      status = Status.find(params[:id])
+      new_position = move_params[:position].to_i
+
+      return render json: { error: "position is required" }, status: :bad_request unless new_position.positive?
+
+      Status.transaction do
+        others = Status.ordered.where.not(id: status.id).to_a
+        others.insert(new_position - 1, status)
+        others.each_with_index do |s, i|
+          s.update_columns(position: i)
+        end
+      end
+
+      render json: serialize_record(status.reload)
+    rescue ActiveRecord::RecordNotFound
+      render json: { error: "Not found" }, status: :not_found
+    end
+
     # DELETE /api/statuses/:id?move_to=<other_status_id>
     # api-design.md の仕様:
     #   - 所属 Inquiry が無ければそのまま 204 で削除
@@ -70,6 +92,10 @@ module Api
     end
 
     private
+
+    def move_params
+      params.permit(:position)
+    end
 
     # `move_to` クエリを検証して移動先 Status を返す。
     # 不正値の場合は適切なエラーレスポンスを返却して nil を返す（呼び出し側で `performed?` を見る）。

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ChevronRight, Trash2 } from 'lucide-vue-next'
+import { ChevronRight, GripVertical, Trash2 } from 'lucide-vue-next'
 import { VueDraggable } from 'vue-draggable-plus'
-import { fetchStatuses } from '~/lib/api/statuses'
+import { fetchStatuses, moveStatus } from '~/lib/api/statuses'
 import { fetchPriorities } from '~/lib/api/priorities'
 import { fetchInquiries, moveInquiry, type MoveInquiryInput } from '~/lib/api/inquiries'
 import type { Status } from '~/types/status'
@@ -116,6 +116,19 @@ watch(
   { immediate: true },
 )
 
+// ステータス列の並び替え DnD 用ローカルリスト。
+// Inquiry の localLists と同パターン: サーバデータを splice で同期し参照は不変。
+const localStatuses = ref<Status[]>([])
+
+watch(
+  () => statusesQuery.data.value,
+  (statuses) => {
+    if (!statuses) return
+    localStatuses.value.splice(0, localStatuses.value.length, ...statuses)
+  },
+  { immediate: true },
+)
+
 const openMap = ref<Record<number, boolean>>({})
 
 watch(
@@ -206,6 +219,26 @@ const moveMutation = useMutation({
   },
 })
 
+const statusDragKey = ref(0)
+
+const statusMoveMutation = useMutation({
+  mutationFn: ({ id, position }: { id: number; position: number }) =>
+    moveStatus(id, position),
+  onError: (err) => console.warn('Failed to move status:', err),
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ['statuses'] })
+    statusDragKey.value++
+  },
+})
+
+function handleStatusDragEnd(event: { oldIndex?: number; newIndex?: number; item: HTMLElement }) {
+  if (event.oldIndex === event.newIndex) return
+  const movedId = Number(event.item.dataset.statusId)
+  const newPosition = (event.newIndex ?? 0) + 1
+  if (!Number.isFinite(movedId) || movedId === 0) return
+  statusMoveMutation.mutate({ id: movedId, position: newPosition })
+}
+
 // VueDraggable の @end ハンドラ。
 // event.item は DOM 要素で、InquiryRow root に付けた data-inquiry-id から id を取得。
 // event.to は移動先 VueDraggable の DOM、data-status-id 属性で新ステータスを判定。
@@ -232,16 +265,35 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
       ボードの読み込みに失敗しました: {{ errorMessage }}
     </div>
     <div v-else-if="statusesQuery.data.value">
-      <div
-        v-for="status in statusesQuery.data.value"
-        :key="status.id"
-        class="border-b border-border last:border-b-0"
-      >
+      <ClientOnly>
+        <VueDraggable
+          :key="`statuses-${statusDragKey}`"
+          :list="localStatuses"
+          :model-value="localStatuses"
+          group="statuses"
+          handle="[data-status-drag-handle]"
+          ghost-class="opacity-30"
+          :animation="150"
+          @end="handleStatusDragEnd"
+        >
+          <div
+            v-for="status in localStatuses"
+            :key="status.id"
+            :data-status-id="status.id"
+            class="border-b border-border last:border-b-0"
+          >
         <!--
           ヘッダー行。トグル用 <button> と削除用 <button> が並ぶ独立要素になっているため
           group / hover でゴミ箱アイコンを表示する（InquiryRow のドラッグハンドルと同パターン）。
         -->
         <div class="group flex w-full items-center hover:bg-muted/40">
+          <span
+            data-status-drag-handle
+            class="ml-2 cursor-grab opacity-0 group-hover:opacity-100 text-muted-foreground"
+            aria-hidden="true"
+          >
+            <GripVertical class="h-4 w-4" />
+          </span>
           <button
             type="button"
             class="flex flex-1 items-center gap-2 px-4 py-3 text-left"
@@ -323,7 +375,9 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
             該当なし（ここにドロップで移動できます）
           </div>
         </div>
-      </div>
+          </div>
+        </VueDraggable>
+      </ClientOnly>
 
       <!--
         ボード末尾の「+ ステータスを追加」UI（UC-06）。
