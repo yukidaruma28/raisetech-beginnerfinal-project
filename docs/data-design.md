@@ -215,16 +215,14 @@ CREATE INDEX idx_inquiry_labels_label_id ON inquiry_labels (label_id);
 
 Rails の `db/seeds.rb` で以下を投入する想定。
 
-**statuses（Linear の既定ワークフロー準拠、6件）**
+**statuses（視聴管理ドメイン向け 4 件）**
 
 | position | name | color |
 |---|---|---|
-| 0 | Backlog | `#95A5A6` |
-| 1 | Todo | `#3498DB` |
-| 2 | In Progress | `#F39C12` |
-| 3 | In Review | `#9B59B6` |
-| 4 | Done | `#2ECC71` |
-| 5 | Canceled | `#7F8C8D` |
+| 0 | 見たい | `#3498DB` |
+| 1 | 視聴中 | `#F39C12` |
+| 2 | 視聴済み | `#2ECC71` |
+| 3 | 断念 | `#7F8C8D` |
 
 **priorities（3 段階、デフォルト「低」）**
 

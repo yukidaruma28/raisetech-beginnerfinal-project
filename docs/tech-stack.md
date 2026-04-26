@@ -148,8 +148,8 @@
 | 項目 | 内容 |
 |------|------|
 | DBMS | MySQL 8.0 |
-| DB 名 | `inquiry_tracker` |
-| 接続 | ローカル：`localhost:3306` / 本番：既存 RDS エンドポイント |
+| DB 名 | ローカル開発：`inquiry_tracker` / 本番：`inquiry_tracker_production`（+ cache / queue / cable の計 4 DB）|
+| 接続 | ローカル：`localhost:3306` / 本番：RDS エンドポイント（`kanban-linear-db.cbq4wa46o8p3.ap-northeast-1.rds.amazonaws.com`）|
 | 文字コード | `utf8mb4` / 照合順序 `utf8mb4_0900_ai_ci` |
 | マイグレーション管理 | ActiveRecord Migration（`db/migrate/` に配置） |
 
@@ -159,14 +159,16 @@
 
 | ツール | 用途 |
 |-------|------|
-| Docker | backend / mysql の2コンテナを管理（frontend はホスト側で `npm run dev`） |
-| Docker Compose v2 | `docker-compose.yml` で開発時の起動を一本化 |
+| Docker | ローカル開発：backend / mysql の 2 コンテナ（`docker-compose.yml`）。本番：nginx + nuxt + rails の 3 コンテナ（`infra/docker-compose.prod.yml`） |
+| Docker Compose v2 | ローカル開発・本番起動を一本化 |
+| Amazon ECR | 本番 Docker イメージのレジストリ（backend / frontend の 2 リポジトリ）。Terraform で管理、最新 3 世代を保持 |
 | Git | バージョン管理 |
 | GitHub | リモートリポジトリ |
-| GitHub Actions | CI（lint / test 実行）。既存 raisetech_kanban の構成を参考に設定 |
-| Terraform | AWS リソース（EC2 / セキュリティグループ / RDS のユーザー・DB）を IaC 化 |
-| AWS EC2 | 本番アプリケーションサーバー。既存インスタンスと共存 |
-| AWS RDS MySQL | 本番 DB。既存インスタンス内に新 DB `inquiry_tracker` を作成して同居運用 |
+| GitHub Actions | CI（lint / test 実行） |
+| Terraform | AWS リソース（RDS / RDS 用 SG / ECR リポジトリ）を IaC 化（`infra/terraform/`） |
+| AWS EC2 | 本番アプリケーションサーバー（`i-031ce57e84c26ca37`）。既存インスタンスを再利用 |
+| AWS SSM | SSH 不要のリモートコマンド実行。`deploy.sh` が `aws ssm send-command` 経由で EC2 を操作 |
+| AWS RDS MySQL | 本番 DB（専用インスタンス `kanban-linear-db`）。DB 名 `inquiry_tracker_production` |
 
 ### Rails をコンテナ内で動かす理由
 
@@ -180,11 +182,13 @@ frontend は libmysqlclient に依存しないため、ホスト側で `npm run 
 
 | サービス | ローカル | 本番 |
 |---------|---------|------|
-| Nuxt | 3000 | 80 / 443（Nginx 前段） |
-| Rails API | 3001 | 内部ポートのみ |
-| MySQL | 3306 | RDS エンドポイント |
+| Nuxt | 3000 | コンテナ内 3000（nginx 経由） |
+| Rails API | 3001 | コンテナ内 80（nginx 経由） |
+| nginx | - | 8080（外部公開）|
+| MySQL | 3306 | RDS エンドポイント:3306 |
 
-ポート 3000 を Nuxt に割り当てるため、Rails のデフォルト 3000 を 3001 に変更する。
+ローカルでは Rails のデフォルト 3000 を 3001 に変更して Nuxt と競合を避ける。
+本番は nginx がポート 8080 で受けて `/api/*` を Rails へ、それ以外を Nuxt へ転送する。
 
 ---
 
