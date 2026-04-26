@@ -192,6 +192,7 @@ cd frontend && npx nuxi typecheck
 | GET | /api/statuses | ステータス一覧（position 昇順）|
 | POST | /api/statuses | ステータス作成（position は MAX+1 自動採番、上限 `Status::MAX_COUNT` 件、201 / 422 / 400）|
 | DELETE | /api/statuses/:id | ステータス削除（`?move_to=<id>` で所属 Inquiry を別 status へ付け替えた上で削除、204 / 404 / 409 / 422）|
+| PATCH  | /api/statuses/:id/move | ステータス並び替え DnD（position 受領、dense int 再採番、200 / 400 / 404）|
 | GET | /api/priorities | 優先度一覧（position 昇順、3 件）|
 | GET | /api/inquiries | 問い合わせ一覧（status_id / priority_id eager load 済み）|
 | POST | /api/inquiries | 問い合わせ作成（priorityId 省略時「低」自動割当、position は同 status 内 MAX+1 自動採番、201 / 422 / 404 / 400）|
