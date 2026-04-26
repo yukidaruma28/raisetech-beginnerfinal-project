@@ -112,8 +112,8 @@ Linear 風の UI でアニメ・映画の視聴進捗をステータス別グル
 
 ```bash
 # 1. clone
-git clone <REPO_URL>
-cd <REPO_DIR>
+git clone https://github.com/yukidaruma28/raisetech-beginnerfinal-project.git
+cd raisetech-beginnerfinal-project
 
 # 2. バックエンド (MySQL + Rails) を起動
 docker compose up -d
