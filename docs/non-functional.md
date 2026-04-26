@@ -51,16 +51,14 @@
 - 未保存の変更がある場合は、閉じる前に確認ダイアログを表示する
 
 ### 優先度バッジの表示ルール
-| レベル | 表示名（既定値） | アイコン／色 |
-|-------|----------------|-------------|
-| 0 | No priority | グレー |
-| 1 | Urgent | 赤 |
-| 2 | High | オレンジ |
-| 3 | Medium | 黄 |
-| 4 | Low | 青 |
+| レベル | 表示名 | 色 |
+|-------|--------|-----|
+| 1 | 高 | 赤（`#E74C3C`） |
+| 2 | 中 | 黄（`#F1C40F`） |
+| 3 | 低 | 青（`#3498DB`） |
 
-- 名前・色はユーザーが変更可能。レベル（0-4）は並び順と既定色の判定に使う
-- カードサムネイルでは優先度アイコンのみを小さく表示、モーダルで名前を表示する
+- 優先度は 3 段階固定（level 1〜3）。名前・色の UI 編集は MVP スコープ外
+- フロントエンドでは漢字 1 文字（高 / 中 / 低）+ priority.color の薄い背景でバッジ表示する
 
 ### テキスト省略ルール
 - カードサムネイル上のタイトルは1行表示・超過分は `...` で省略
@@ -122,11 +120,15 @@
 
 | 項目 | 内容 |
 |------|------|
-| デプロイ先 | AWS EC2（既存 raisetech_kanban インフラと同居）+ RDS MySQL |
-| RDS 運用方針 | 既存 RDS インスタンス内に新規 DB `inquiry_tracker` を作成し同居運用する（コスト節約）。既存アプリの DB とスキーマ分離する |
-| コンテナ構成 | Docker で backend / frontend をイメージ化。docker-compose でローカル起動 |
-| IaC | Terraform で EC2・セキュリティグループ・RDS を管理。既存 `raiseTech_AI/terraform/` の構成を参考に拡張 |
-| ログ | Rails：標準ログ出力（STDOUT）。CloudWatch Logs への転送は本番で検討 |
+| デプロイ先 | AWS EC2（`i-031ce57e84c26ca37`、54.64.68.36）+ RDS MySQL（新規専用インスタンス） |
+| 本番 DB 名 | `inquiry_tracker_production`（Rails 8.1 の複数 DB 構成: primary / cache / queue / cable の 4 DB） |
+| 本番コンテナ構成 | **3 コンテナ**（nginx + nuxt + rails）を `infra/docker-compose.prod.yml` で管理。ポート 8080 で公開 |
+| nginx | リバースプロキシ。`/api/*` → rails コンテナ（:80）、`/` → nuxt コンテナ（:3000） |
+| コンテナレジストリ | Amazon ECR（`kanban-linear-backend` / `kanban-linear-frontend`）。最新 3 世代を保持 |
+| IaC | Terraform（`infra/terraform/`）で RDS・RDS 用 SG・ECR リポジトリを管理。EC2 は既存インスタンスをデータソース参照 |
+| デプロイ方法 | `deploy.sh`（SSH 不要）: ローカルでイメージをビルド → ECR push → SSM Send-Command で EC2 に ECR pull + `docker compose up -d` |
+| EC2 初回セットアップ | `infra/ec2-setup.sh`（SSM 経由）: Docker + Compose v2 plugin インストール + systemd サービス（`kanban-linear.service`）登録 |
+| ログ | Rails：標準ログ出力（STDOUT → docker logs）。CloudWatch Logs への転送は本番で検討 |
 
 ---
 
