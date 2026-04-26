@@ -5,12 +5,10 @@ aws_region  = "ap-northeast-1"
 aws_profile = "kanban"
 project     = "kanban-linear"
 
-# 既存インフラの ID（変更不要）
-vpc_id               = "vpc-074caa239f81ddc22"
-private_subnet_1a_id = "subnet-072b597b6778bb324"
-private_subnet_1c_id = "subnet-0641ecb926efc34be"
-ec2_sg_id            = "sg-0b0fce23d43f06913"
-ec2_instance_id      = "i-031ce57e84c26ca37"
+# EC2 への HTTP(8080) アクセスを許可する CIDR
+# ポートフォリオとして公開する場合は ["0.0.0.0/0"]
+# 特定 IP のみ許可する場合は ["xxx.xxx.xxx.xxx/32"]
+allowed_ingress_cidrs = ["0.0.0.0/0"]
 
 # RDS MySQL
 db_instance_class = "db.t3.micro"

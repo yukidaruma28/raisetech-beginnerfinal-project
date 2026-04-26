@@ -13,7 +13,6 @@ set -euo pipefail
 
 PROFILE="${AWS_PROFILE:-kanban}"
 REGION="${AWS_REGION:-ap-northeast-1}"
-INSTANCE_ID="${INSTANCE_ID:-i-031ce57e84c26ca37}"
 REPO_URL="https://github.com/yukidaruma28/raisetech-beginnerfinal-project.git"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -28,6 +27,7 @@ ECR_BACKEND_URL=$(terraform -chdir="$TF_DIR" output -raw ecr_backend_url)
 ECR_FRONTEND_URL=$(terraform -chdir="$TF_DIR" output -raw ecr_frontend_url)
 DB_HOST=$(terraform -chdir="$TF_DIR" output -raw rds_host)
 EC2_IP=$(terraform -chdir="$TF_DIR" output -raw ec2_public_ip)
+INSTANCE_ID=$(terraform -chdir="$TF_DIR" output -raw ec2_instance_id)
 RAILS_MASTER_KEY=$(cat "$SCRIPT_DIR/backend/config/master.key")
 
 echo "  ECR:    $ECR_REGISTRY"

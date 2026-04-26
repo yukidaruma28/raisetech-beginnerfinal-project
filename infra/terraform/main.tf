@@ -4,12 +4,28 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project = var.project
+      Project   = var.project
+      ManagedBy = "terraform"
     }
   }
 }
 
-# 既存 EC2 インスタンスの参照（デプロイ先）
-data "aws_instance" "ec2" {
-  instance_id = var.ec2_instance_id
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+# Amazon Linux 2023 (x86_64) の最新 AMI
+data "aws_ami" "al2023" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
 }
