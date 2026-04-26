@@ -11,6 +11,8 @@ import type { Priority } from '~/types/priority'
 import type { Inquiry } from '~/types/inquiry'
 import InquiryRow from './InquiryRow.vue'
 import InquiryEditDialog from './InquiryEditDialog.vue'
+import CreateStatusDialog from './CreateStatusDialog.vue'
+import { STATUS_MAX_COUNT } from '~/lib/validation/status'
 
 const statusesQuery = useQuery<Status[]>({
   queryKey: ['statuses'],
@@ -284,6 +286,22 @@ function optimisticReorder(
             </VueDraggable>
           </ClientOnly>
         </div>
+      </div>
+
+      <!--
+        ボード末尾の「+ ステータスを追加」UI（UC-06）。
+        STATUS_MAX_COUNT に達したらボタンを隠して案内文に差し替える。
+        reka-ui Dialog は SSR で IPC エラーを起こすため ClientOnly 必須。
+      -->
+      <div class="flex items-center justify-start border-t border-border bg-muted/20 px-4 py-3">
+        <ClientOnly>
+          <CreateStatusDialog
+            v-if="(statusesQuery.data.value?.length ?? 0) < STATUS_MAX_COUNT"
+          />
+          <p v-else class="text-sm text-muted-foreground">
+            ステータスは最大 {{ STATUS_MAX_COUNT }} 件までです
+          </p>
+        </ClientOnly>
       </div>
     </div>
 
