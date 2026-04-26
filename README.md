@@ -35,6 +35,41 @@ Linear 風の UI でアニメ・映画の視聴進捗をカンバン管理する
 
 ---
 
+## 技術スタック
+### フロントエンド
+- Nuxt 4（Vue 3 / TypeScript）
+- Tailwind CSS 4
+- shadcn-vue（UI コンポーネント）
+- @tanstack/vue-query（サーバー状態管理）
+- vue-draggable-plus（DnD）
+- VeeValidate + zod（フォームバリデーション）
+- ESLint / Prettier
+
+### バックエンド
+- Ruby 3.4 / Rails 8.1（API mode）
+- jsonapi-serializer（camelCase JSON 出力）
+- rack-cors
+- RSpec / RuboCop / Brakeman
+
+### データベース
+- MySQL 8（ローカル: Docker、本番: AWS RDS）
+
+### インフラ
+- Docker / Docker Compose v2
+- AWS EC2（Amazon Linux 2023）AWS RDS MySQL（kanban-linear-db）
+- Amazon ECR（Docker イメージレジストリ）
+- AWS SSM（SSH 不要のリモート操作）
+- Terraform（RDS / ECR を IaC 管理）
+- nginx（リバースプロキシ、ポート 8080）
+- GitHub Actions（CI: lint / test / PR チェック）
+
+### 開発ツール
+- Node.js 22 LTS / npm
+- Vite 7（Nuxt 内部ビルドツール）
+- GitHub CLI（Issue / PR 自動化）
+
+---
+
 ## アーキテクチャ
 
 ```
