@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # プロジェクトルートで実行
-docker-compose up -d
+docker compose up -d
 # → MySQL が localhost:3306、Rails API が localhost:3001 で起動
 # 停止: docker-compose down
 # データも含めて完全リセット: docker-compose down -v
@@ -141,9 +141,9 @@ cd frontend && npx nuxi typecheck
 ### ディレクトリ構成
 ```
 <repo-root>/
-├── backend/                Rails 7.1 API mode
+├── backend/                Rails 8.1 API mode
 │   ├── app/
-│   │   ├── controllers/api/   REST APIエンドポイント（inquiries / statuses / priorities / labels）
+│   │   ├── controllers/api/   REST APIエンドポイント（inquiries / statuses / priorities）
 │   │   ├── models/            ActiveRecord モデル
 │   │   └── serializers/       jsonapi-serializer による JSON 整形
 │   ├── config/
@@ -159,9 +159,13 @@ cd frontend && npx nuxi typecheck
     │   ├── components/
     │   │   ├── ui/            shadcn-vue のコンポーネント
     │   │   └── board/
-    │   │       ├── StatusColumns.vue  ステータス列ヘッダー
-    │   │       ├── InquiryCard.vue    作品カード（予定）
-    │   │       └── InquiryModal.vue   作品詳細モーダル（予定）
+    │   │       ├── BoardListView.vue       ボードのメインビュー
+    │   │       ├── InquiryRow.vue          作品行
+    │   │       ├── InquiryEditDialog.vue   作品編集ダイアログ
+    │   │       ├── CreateInquiryDialog.vue 作品作成ダイアログ
+    │   │       ├── CreateStatusDialog.vue  ステータス作成ダイアログ
+    │   │       ├── DeleteStatusDialog.vue  ステータス削除ダイアログ
+    │   │       └── PriorityIcon.vue        優先度アイコン
     │   ├── lib/api/           Rails API クライアント（fetch ベース）
     │   ├── plugins/           Nuxt プラグイン（vue-query 等）
     │   ├── assets/css/        Tailwind v4 エントリ
