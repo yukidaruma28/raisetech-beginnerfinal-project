@@ -1,8 +1,15 @@
 # 視聴管理アプリ
 
+<img width="1920" height="957" alt="image" src="https://github.com/user-attachments/assets/b4e2b939-41a0-4be8-9736-c98974c1c701" />
+
+説明動画（YouTubeへ遷移します）
+https://youtu.be/tQxZqqJAMuI
+
 Linear 風の UI でアニメ・映画の視聴進捗をカンバン管理する、シングルユーザー向けの個人用アプリ。RaiseTech 初級編 最終課題のポートフォリオ作品。
 
 - **🌐 本番デモ**: http://54.64.68.36:8080/
+- (もし作品が見られない場合は、shift+ctrl+R で強制リロードをしてください
+)
 - **特徴**: シングルユーザー / 認証なし / 1 ボード固定 / DnD で並び替え
 - **スタック**: Rails 8.1（API mode）/ Nuxt 4（Vue 3）/ MySQL 8 / AWS EC2 + RDS / Terraform / Docker
 
