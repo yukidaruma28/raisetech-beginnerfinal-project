@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import { Film } from 'lucide-vue-next'
 import BoardListView from '~/components/board/BoardListView.vue'
 import CreateInquiryDialog from '~/components/board/CreateInquiryDialog.vue'
+
+useHead({ htmlAttrs: { class: 'dark' } })
 </script>
 
 <template>
   <div class="min-h-screen bg-background text-foreground">
-    <header class="border-b">
-      <div class="mx-auto flex max-w-7xl items-center px-6 py-5">
-        <h1 class="text-2xl font-semibold">
+    <header class="sticky top-0 z-10 border-b border-border/50 bg-card/90 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center gap-3 px-6 py-4">
+        <Film class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+        <h1 class="text-lg font-bold tracking-tight">
           視聴管理ボード
         </h1>
         <!--

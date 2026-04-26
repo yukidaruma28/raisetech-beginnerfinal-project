@@ -143,7 +143,7 @@ function selectPreset(preset: string) {
       <form class="grid gap-4" @submit.prevent="onSubmit">
         <div
           v-if="serverError"
-          class="rounded-md border border-red-500/40 bg-red-50 px-3 py-2 text-sm text-red-700"
+          class="rounded-md border border-red-500/30 bg-red-950/40 px-3 py-2 text-sm text-red-400"
           role="alert"
         >
           {{ serverError }}
