@@ -25,7 +25,7 @@ https://youtu.be/tQxZqqJAMuI
 
 Linear 風の UI でアニメ・映画の視聴進捗をカンバン管理する、シングルユーザー向けの個人用アプリ。RaiseTech 初級編 最終課題のポートフォリオ作品。
 
-- **🌐 本番デモ**: http://54.64.68.36:8080/
+- **🌐 本番デモ**: http://13.193.154.150:8080/
 - (もし作品が見られない場合は、shift+ctrl+R で強制リロードをしてください
 )
 - **特徴**: シングルユーザー / 認証なし / 1 ボード固定 / DnD で並び替え
@@ -227,7 +227,7 @@ DB_USERNAME=inquiry DB_PASSWORD=<terraform.tfvars と同じ値> bash deploy.sh
 
 実行内容: ローカルで Docker イメージビルド → ECR push → EC2 で `docker compose pull` + `up -d` → `db:prepare` + `db:seed`。
 
-完了後 http://54.64.68.36:8080/ で確認。
+完了後 http://13.193.154.150:8080/ で確認。
 
 ---
 
