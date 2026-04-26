@@ -25,7 +25,10 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    // server-side only: backend コンテナへの直接 URL（本番: http://backend:80）
+    apiBaseUrl: process.env.API_BASE_URL || '',
     public: {
+      // client-side: 本番は空文字（nginx 経由の同一オリジン相対パス）
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3001',
     },
   },
