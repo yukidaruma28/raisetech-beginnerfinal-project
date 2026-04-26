@@ -306,16 +306,16 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
               :class="{ 'rotate-90': openMap[status.id] }"
               aria-hidden="true"
             />
-            <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span class="text-sm font-semibold text-foreground">
               {{ status.name }}
             </span>
-            <span class="rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+            <span class="rounded-full bg-muted px-2 py-0.5 text-sm font-medium tabular-nums text-muted-foreground">
               {{ inquiriesByStatus[status.id]?.length ?? 0 }}
             </span>
           </button>
           <button
             type="button"
-            class="mr-2 inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition-all hover:bg-red-950/30 hover:text-red-400 group-hover:opacity-100 focus-visible:opacity-100"
+            class="mr-2 inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
             :aria-label="`「${status.name}」を削除`"
             @click.stop="openDelete(status)"
           >

@@ -34,7 +34,7 @@ function formatDate(iso: string | undefined): string {
     role="button"
     tabindex="0"
     :aria-label="`作品 ${inquiry.id} を編集`"
-    class="group mx-2 my-1 flex cursor-pointer items-center gap-3 rounded-md border border-border/30 bg-card px-4 py-2.5 text-sm transition-colors hover:border-border/60 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    class="group mx-2 my-1 flex cursor-pointer items-center gap-3 rounded-md border border-border/40 bg-card px-4 py-3 text-base transition-colors hover:border-border hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
     @click="emit('open', inquiry)"
     @keydown.enter.space.prevent="emit('open', inquiry)"
   >
@@ -53,12 +53,12 @@ function formatDate(iso: string | undefined): string {
 
     <PriorityIcon v-if="priority" :priority="priority" @click.stop />
 
-    <span class="w-16 shrink-0 font-mono text-xs text-muted-foreground">
+    <span class="w-16 shrink-0 font-mono text-sm text-muted-foreground">
       作品-{{ inquiry.id }}
     </span>
 
     <span
-      class="inline-block h-2 w-2 shrink-0 rounded-full"
+      class="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
       :style="{ backgroundColor: status.color }"
       :title="status.name"
       aria-hidden="true"
@@ -68,7 +68,7 @@ function formatDate(iso: string | undefined): string {
       {{ inquiry.title }}
     </span>
 
-    <span class="shrink-0 text-xs text-muted-foreground tabular-nums">
+    <span class="shrink-0 text-sm text-muted-foreground tabular-nums">
       {{ formatDate(inquiry.createdAt) }}
     </span>
   </div>
