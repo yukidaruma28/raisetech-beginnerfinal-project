@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import { Film } from 'lucide-vue-next'
 import BoardListView from '~/components/board/BoardListView.vue'
 import CreateInquiryDialog from '~/components/board/CreateInquiryDialog.vue'
 </script>
 
 <template>
   <div class="min-h-screen bg-background text-foreground">
-    <header class="border-b">
-      <div class="mx-auto flex max-w-7xl items-center px-6 py-5">
-        <h1 class="text-2xl font-semibold">
+    <header class="sticky top-0 z-10 border-b bg-white/90 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center gap-3 px-6 py-4">
+        <Film class="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
+        <h1 class="text-xl font-bold tracking-tight">
           視聴管理ボード
         </h1>
         <!--

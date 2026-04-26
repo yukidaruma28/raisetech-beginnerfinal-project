@@ -34,20 +34,18 @@ function formatDate(iso: string | undefined): string {
     role="button"
     tabindex="0"
     :aria-label="`作品 ${inquiry.id} を編集`"
-    class="group flex cursor-pointer items-center gap-3 border-b border-border/40 px-6 py-2.5 text-base hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:outline-none"
+    class="group mx-2 my-1 flex cursor-pointer items-center gap-3 rounded-md border border-border/40 bg-card px-4 py-3 text-base transition-colors hover:border-border hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
     @click="emit('open', inquiry)"
     @keydown.enter.space.prevent="emit('open', inquiry)"
   >
     <!--
       ドラッグハンドル。data-drag-handle を vue-draggable-plus の handle セレクタで拾う。
       hover 時のみ表示し、@click.stop で行クリック（編集モーダル）から伝播を遮断。
-      handle 配下の要素も Sortable.js が drag 起点として認識するので、アイコン全体が
-      data 属性配下に入っていれば OK。
     -->
     <span
       data-drag-handle
-      class="shrink-0 cursor-grab text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
-      :aria-label="`タスク ${inquiry.id} を並び替え`"
+      class="shrink-0 cursor-grab text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing"
+      :aria-label="`作品 ${inquiry.id} を並び替え`"
       @click.stop
     >
       <GripVertical class="h-4 w-4" />
@@ -55,12 +53,12 @@ function formatDate(iso: string | undefined): string {
 
     <PriorityIcon v-if="priority" :priority="priority" @click.stop />
 
-    <span class="w-20 shrink-0 font-mono text-sm text-muted-foreground">
+    <span class="w-16 shrink-0 font-mono text-sm text-muted-foreground">
       作品-{{ inquiry.id }}
     </span>
 
     <span
-      class="inline-block h-3 w-3 shrink-0 rounded-full"
+      class="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
       :style="{ backgroundColor: status.color }"
       :title="status.name"
       aria-hidden="true"

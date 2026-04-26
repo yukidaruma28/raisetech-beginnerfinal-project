@@ -257,7 +257,7 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
 </script>
 
 <template>
-  <section class="rounded-md border bg-card">
+  <section class="overflow-hidden rounded-lg border border-border/40 bg-card">
     <div v-if="isLoading" class="px-6 py-4 text-base text-muted-foreground">
       ボードを読み込み中…
     </div>
@@ -280,46 +280,42 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
             v-for="status in localStatuses"
             :key="status.id"
             :data-status-id="status.id"
-            class="border-b border-border last:border-b-0"
+            class="border-b border-border/30 last:border-b-0"
+            :style="{ borderLeftWidth: '3px', borderLeftStyle: 'solid', borderLeftColor: status.color }"
           >
         <!--
           ヘッダー行。トグル用 <button> と削除用 <button> が並ぶ独立要素になっているため
           group / hover でゴミ箱アイコンを表示する（InquiryRow のドラッグハンドルと同パターン）。
         -->
-        <div class="group flex w-full items-center hover:bg-muted/40">
+        <div class="group flex w-full items-center transition-colors hover:bg-muted/20">
           <span
             data-status-drag-handle
-            class="ml-2 cursor-grab opacity-0 group-hover:opacity-100 text-muted-foreground"
+            class="ml-2 cursor-grab opacity-0 group-hover:opacity-60 text-muted-foreground transition-opacity"
             aria-hidden="true"
           >
             <GripVertical class="h-4 w-4" />
           </span>
           <button
             type="button"
-            class="flex flex-1 items-center gap-2 px-4 py-3 text-left"
+            class="flex flex-1 items-center gap-2 px-4 py-3.5 text-left"
             :aria-expanded="openMap[status.id] ?? true"
             @click="toggle(status.id)"
           >
             <ChevronRight
-              class="h-4 w-4 text-muted-foreground transition-transform duration-150"
+              class="h-4 w-4 text-muted-foreground/60 transition-transform duration-150"
               :class="{ 'rotate-90': openMap[status.id] }"
               aria-hidden="true"
             />
-            <span
-              class="inline-block h-3 w-3 rounded-full"
-              :style="{ backgroundColor: status.color }"
-              aria-hidden="true"
-            />
-            <span class="text-base font-semibold text-foreground">
+            <span class="text-sm font-semibold text-foreground">
               {{ status.name }}
             </span>
-            <span class="text-sm text-muted-foreground tabular-nums">
+            <span class="rounded-full bg-muted px-2 py-0.5 text-sm font-medium tabular-nums text-muted-foreground">
               {{ inquiriesByStatus[status.id]?.length ?? 0 }}
             </span>
           </button>
           <button
             type="button"
-            class="mr-2 inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
+            class="mr-2 inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
             :aria-label="`「${status.name}」を削除`"
             @click.stop="openDelete(status)"
           >
@@ -354,7 +350,7 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
               handle="[data-drag-handle]"
               ghost-class="opacity-30"
               :empty-insert-threshold="40"
-              class="min-h-[56px]"
+              class="min-h-[56px] py-1"
               @end="handleDragEnd"
             >
               <InquiryRow
@@ -370,9 +366,9 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
           </ClientOnly>
           <div
             v-if="!inquiriesByStatus[status.id]?.length"
-            class="pointer-events-none absolute inset-x-0 top-0 flex h-[56px] items-center px-6 text-sm italic text-muted-foreground"
+            class="pointer-events-none absolute inset-x-0 top-0 flex h-[56px] items-center px-6 text-xs italic text-muted-foreground/50"
           >
-            該当なし（ここにドロップで移動できます）
+            ここにドロップで移動できます
           </div>
         </div>
           </div>
@@ -384,7 +380,7 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
         STATUS_MAX_COUNT に達したらボタンを隠して案内文に差し替える。
         reka-ui Dialog は SSR で IPC エラーを起こすため ClientOnly 必須。
       -->
-      <div class="flex items-center justify-start border-t border-border bg-muted/20 px-4 py-3">
+      <div class="flex items-center justify-start border-t border-border/30 px-4 py-3">
         <ClientOnly>
           <CreateStatusDialog
             v-if="(statusesQuery.data.value?.length ?? 0) < STATUS_MAX_COUNT"
