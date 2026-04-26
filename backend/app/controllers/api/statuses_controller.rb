@@ -43,7 +43,100 @@ module Api
       end
     end
 
+    # DELETE /api/statuses/:id?move_to=<other_status_id>
+    # api-design.md の仕様:
+    #   - 所属 Inquiry が無ければそのまま 204 で削除
+    #   - 所属 Inquiry がある場合は `move_to` で指定した別ステータスへ全件付け替えてから削除
+    #     - `move_to` 未指定 → 409 CONFLICT
+    #     - `move_to` の status が未存在 → 404 NOT_FOUND（`field: 'moveTo'`）
+    #     - `move_to == :id`（自身） → 422
+    #   - 付け替え→削除は 1 トランザクションで実行（途中失敗で全 rollback）。
+    def destroy
+      status = Status.find(params[:id])
+
+      if status.inquiries.exists?
+        target = resolve_move_to_target(status)
+        return if performed?
+
+        Status.transaction do
+          relocate_inquiries!(status, target)
+          status.destroy!
+        end
+      else
+        status.destroy!
+      end
+
+      head :no_content
+    end
+
     private
+
+    # `move_to` クエリを検証して移動先 Status を返す。
+    # 不正値の場合は適切なエラーレスポンスを返却して nil を返す（呼び出し側で `performed?` を見る）。
+    def resolve_move_to_target(status)
+      raw = params[:move_to]
+
+      if raw.blank?
+        render_conflict(
+          message: "所属する問い合わせがあるため、移動先ステータスを指定してください",
+          details: [ { field: "moveTo", reason: "required_when_inquiries_exist" } ]
+        )
+        return nil
+      end
+
+      move_to_id = Integer(raw, 10) rescue nil
+      if move_to_id.nil?
+        render_bad_request(
+          message: "move_to は整数で指定してください",
+          details: [ { field: "moveTo", reason: "must_be_integer" } ]
+        )
+        return nil
+      end
+
+      if move_to_id == status.id
+        render_validation_error_for_self_move
+        return nil
+      end
+
+      target = Status.find_by(id: move_to_id)
+      if target.nil?
+        render_not_found(field: "moveTo", message: "移動先のステータスが見つかりません")
+        return nil
+      end
+
+      target
+    end
+
+    # 422 を直接返すケース（model validation ではないので render_validation_error は使えない）。
+    def render_validation_error_for_self_move
+      render json: {
+        error: "UNPROCESSABLE_ENTITY",
+        message: "自分自身は移動先に指定できません",
+        details: [ { field: "moveTo", reason: "cannot_move_to_self" } ]
+      }, status: :unprocessable_entity
+    end
+
+    # 削除対象 status の所属 Inquiry を target へ全件付け替えた上で、
+    # target 内の position を 1, 2, 3, ... に dense int で再採番する。
+    # InquiriesController#move と同じ詰め方ロジックを踏襲。
+    def relocate_inquiries!(status, target)
+      base_position = Inquiry.where(status_id: target.id).maximum(:position).to_i
+      status.inquiries.order(:position, :id).each_with_index do |inquiry, i|
+        inquiry.update_columns(status_id: target.id, position: base_position + i + 1)
+      end
+      siblings = Inquiry.where(status_id: target.id).order(:position, :id).to_a
+      renumber!(siblings)
+    end
+
+    # 渡された配列の順番で position を 1, 2, 3, ... に詰める。
+    # InquiriesController#renumber! と同一ロジック。位置整合のためだけの小さい
+    # private メソッドなのでモデルへ切り出さずコントローラ内に同居させる。
+    def renumber!(records)
+      records.each_with_index do |record, i|
+        new_position = i + 1
+        record.update_columns(position: new_position) if record.position != new_position
+      end
+    end
 
     # POST 用の正規化。名前と色のみを permit する。
     # キー有無の判定は呼び出し側の `params.key?` で済ませているため、

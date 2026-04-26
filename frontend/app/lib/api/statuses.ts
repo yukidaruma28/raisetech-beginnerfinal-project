@@ -17,3 +17,11 @@ export async function createStatus(input: CreateStatusInput): Promise<Status> {
     body: JSON.stringify(input),
   })
 }
+
+// DELETE /api/statuses/:id?move_to=<id>
+// 所属 Inquiry が存在する場合は moveToId 必須（サーバ側で 409 を返す）。
+// 0 件のときは moveToId を省略してそのまま削除できる。
+export async function deleteStatus(id: number, moveToId?: number): Promise<void> {
+  const qs = moveToId != null ? `?move_to=${moveToId}` : ''
+  await apiFetch<undefined>(`/api/statuses/${id}${qs}`, { method: 'DELETE' })
+}
