@@ -70,29 +70,50 @@ const inquiriesByStatus = computed<Record<number, Inquiry[]>>(() => {
   return map
 })
 
-// VueDraggable は v-model で双方向バインドを要求するため、status ごとのローカル配列を持つ。
-// inquiriesByStatus が更新されたら都度ローカルへ反映する（楽観的更新後の setQueryData も
-// inquiriesByStatus 経由で流れてくる想定）。
-//
-// 空ステータス（Issue #33）対応:
-//   inquiriesByStatus は inquiry を持つ status の id しかキーに持たないため、
-//   そのまま使うと空 status の VueDraggable v-if が常に false で描画されず、
-//   drop ターゲットが消滅する。statusesQuery 全件を見て空配列で seed してから
-//   inquiries を上書きすることで、すべての status で VueDraggable が render される。
+// VueDraggable は :list バインドで配列を直接ミューテートする。
+// Issue #33 のゴースト/複製バグの根本対策として、以下 3 点を遵守する:
+//   1. localLists.value (Record) は **コンポーネントのライフタイム内で再代入しない**。
+//      キーの追加・削除は localLists.value[id] = [] / Reflect.deleteProperty で in-place。
+//   2. 各 status の配列も **一度生成したら同じ参照のまま splice で中身だけ更新**。
+//      `[...list]` で新しい配列に置き換えると vue-draggable-plus 内部の Sortable
+//      が DOM 同期に失敗してゴースト/複製が発生する（過去の試行で再現確認済み）。
+//   3. vue-draggable-plus は :list モードを使い、emit/setter ではなく直接 splice させる。
+//      v-model だと 2 重ソース（emit setter + watcher）が同じ配列を奪い合って壊れる。
 const localLists = ref<Record<number, Inquiry[]>>({})
+
+// Watcher A: status の追加/削除に追随して localLists のキーだけ管理する（配列参照は不変）。
 watch(
-  [inquiriesByStatus, () => statusesQuery.data.value],
-  ([next, statuses]) => {
-    const seeded: Record<number, Inquiry[]> = {}
-    for (const status of statuses ?? []) {
-      seeded[status.id] = []
+  () => statusesQuery.data.value,
+  (statuses) => {
+    if (!statuses) return
+    const validIds = new Set(statuses.map(s => s.id))
+    for (const status of statuses) {
+      if (!localLists.value[status.id]) {
+        localLists.value[status.id] = []
+      }
     }
-    for (const [statusId, list] of Object.entries(next)) {
-      seeded[Number(statusId)] = [...list]
+    for (const idStr of Object.keys(localLists.value)) {
+      if (!validIds.has(Number(idStr))) {
+        Reflect.deleteProperty(localLists.value, idStr)
+      }
     }
-    localLists.value = seeded
   },
-  { immediate: true, deep: true },
+  { immediate: true },
+)
+
+// Watcher B: サーバ側 inquiries が変わったら、各 status の配列を **同じ参照のまま splice** で同期。
+// inquiriesByStatus は毎回新しいオブジェクト参照を返すため deep: true は不要。
+watch(
+  inquiriesByStatus,
+  (next) => {
+    for (const status of statusesQuery.data.value ?? []) {
+      const target = localLists.value[status.id]
+      if (!target) continue
+      const serverList = next[status.id] ?? []
+      target.splice(0, target.length, ...serverList)
+    }
+  },
+  { immediate: true },
 )
 
 const openMap = ref<Record<number, boolean>>({})
@@ -158,30 +179,30 @@ function handleDeleteOpenChange(value: boolean) {
 }
 
 // ========== DnD ==========
+//
+// 楽観的更新は Issue #33 対応で撤去した。理由:
+//   vue-draggable-plus が drop 時に DOM を物理移動 + v-model 配列を splice する一方、
+//   楽観的 setQueryData が watcher 経由で localLists を全置換すると「2 つのソース」
+//   から DOM が二重に書き換えられて、空ステータスを跨ぐ移動でゴーストや複製が発生した。
+//
+// dragKey による VueDraggable 強制再マウント（Issue #33 最終対策）:
+//   API 応答後に dragKey をインクリメントすることで各 VueDraggable の :key が変わり、
+//   Vue が旧 SortableJS インスタンスを破棄して新インスタンスを生成し直す。
+//   ドラッグ後に残るゴースト/複製 DOM は完全にクリアされる。
 const queryClient = useQueryClient()
+
+const dragKey = ref(0)
 
 const moveMutation = useMutation({
   mutationFn: ({ id, statusId, position }: { id: number } & MoveInquiryInput) =>
     moveInquiry(id, { statusId, position }),
-  onMutate: async ({ id, statusId, position }) => {
-    // 進行中の fetch をキャンセルしてからキャッシュを書き換える（後勝ちでちらつくのを防ぐ）。
-    await queryClient.cancelQueries({ queryKey: ['inquiries'] })
-    const prev = queryClient.getQueryData<Inquiry[]>(['inquiries'])
-    if (prev) {
-      queryClient.setQueryData<Inquiry[]>(
-        ['inquiries'],
-        optimisticReorder(prev, id, statusId, position),
-      )
-    }
-    return { prev }
-  },
-  onError: (err, _vars, context) => {
-    if (context?.prev) queryClient.setQueryData(['inquiries'], context.prev)
+  onError: (err) => {
     // Toast は導入しないので console.warn でデバッグ可能にしておく。
     console.warn('Failed to move inquiry:', err)
   },
   onSettled: () => {
     queryClient.invalidateQueries({ queryKey: ['inquiries'] })
+    dragKey.value++
   },
 })
 
@@ -199,51 +220,6 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
   if (event.from === event.to && event.oldIndex === event.newIndex) return
 
   moveMutation.mutate({ id: movedId, statusId: newStatusId, position: newPosition })
-}
-
-// 純関数：サーバ側 dense int 採番と同じロジックで vue-query キャッシュを並び替える。
-function optimisticReorder(
-  inquiries: Inquiry[],
-  movedId: number,
-  newStatusId: number,
-  newPosition: number,
-): Inquiry[] {
-  const moved = inquiries.find(i => i.id === movedId)
-  if (!moved) return inquiries
-  const oldStatusId = moved.statusId
-
-  // status_id ごとに分けつつ、自分は除外。
-  const byStatus = new Map<number, Inquiry[]>()
-  for (const inq of inquiries) {
-    if (inq.id === movedId) continue
-    const list = byStatus.get(inq.statusId) ?? []
-    list.push(inq)
-    byStatus.set(inq.statusId, list)
-  }
-  for (const list of byStatus.values()) {
-    list.sort((a, b) => a.position - b.position || a.id - b.id)
-  }
-
-  // 移動先に挿入。
-  const target = byStatus.get(newStatusId) ?? []
-  const insertIndex = Math.min(Math.max(0, newPosition - 1), target.length)
-  target.splice(insertIndex, 0, { ...moved, statusId: newStatusId })
-  byStatus.set(newStatusId, target)
-
-  // dense int で再採番（移動先 / 元 status の両方）。
-  const renumber = (list: Inquiry[]) => list.map((inq, i) => ({ ...inq, position: i + 1 }))
-  byStatus.set(newStatusId, renumber(byStatus.get(newStatusId) ?? []))
-  if (oldStatusId !== newStatusId) {
-    byStatus.set(oldStatusId, renumber(byStatus.get(oldStatusId) ?? []))
-  }
-
-  // flat。サーバ index 側は status_id, position, id 順なので一応それで並べる。
-  const result: Inquiry[] = []
-  const sortedStatusIds = [...byStatus.keys()].sort((a, b) => a - b)
-  for (const sid of sortedStatusIds) {
-    result.push(...(byStatus.get(sid) ?? []))
-  }
-  return result
 }
 </script>
 
@@ -317,7 +293,9 @@ function optimisticReorder(
           <ClientOnly>
             <VueDraggable
               v-if="localLists[status.id]"
-              v-model="localLists[status.id]!"
+              :key="`${status.id}-${dragKey}`"
+              :list="localLists[status.id]!"
+              :model-value="localLists[status.id]!"
               :data-status-id="status.id"
               :animation="150"
               group="inquiries"
