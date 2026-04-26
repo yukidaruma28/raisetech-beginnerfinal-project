@@ -18,6 +18,18 @@ export async function createStatus(input: CreateStatusInput): Promise<Status> {
   })
 }
 
+export interface UpdateStatusInput {
+  name?: string
+  color?: string
+}
+
+export async function updateStatus(id: number, input: UpdateStatusInput): Promise<Status> {
+  return apiFetch<Status>(`/api/statuses/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}
+
 export async function moveStatus(id: number, position: number): Promise<Status> {
   return apiFetch<Status>(`/api/statuses/${id}/move`, {
     method: 'PATCH',

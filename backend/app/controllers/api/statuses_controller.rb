@@ -43,6 +43,27 @@ module Api
       end
     end
 
+    # PATCH /api/statuses/:id
+    # name / color のいずれか（または両方）を部分更新する。
+    # どちらも省略されたままの場合は 400、バリデーション失敗は 422。
+    def update
+      status = Status.find(params[:id])
+      attrs = update_params
+
+      if attrs.empty?
+        return render_bad_request(
+          message: "name または color を指定してください",
+          details: [ { field: "name", reason: "required_at_least_one" } ]
+        )
+      end
+
+      if status.update(attrs)
+        render json: serialize_record(status)
+      else
+        render_validation_error(status)
+      end
+    end
+
     # PATCH /api/statuses/:id/move
     # body: { position: <1-indexed> }
     # Inquiry#move と同パターン（dense int 再採番、0-indexed で保存）。
@@ -162,6 +183,11 @@ module Api
         new_position = i + 1
         record.update_columns(position: new_position) if record.position != new_position
       end
+    end
+
+    # PATCH 用。送られたキーのみ抽出する（部分更新）。
+    def update_params
+      params.permit(:name, :color).to_h.compact
     end
 
     # POST 用の正規化。名前と色のみを permit する。

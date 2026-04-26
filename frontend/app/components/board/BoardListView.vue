@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ChevronRight, GripVertical, Trash2 } from 'lucide-vue-next'
 import { VueDraggable } from 'vue-draggable-plus'
-import { fetchStatuses, moveStatus } from '~/lib/api/statuses'
+import { fetchStatuses, moveStatus, updateStatus } from '~/lib/api/statuses'
 import { fetchPriorities } from '~/lib/api/priorities'
 import { fetchInquiries, moveInquiry, type MoveInquiryInput } from '~/lib/api/inquiries'
 import type { Status } from '~/types/status'
@@ -191,6 +191,40 @@ function handleDeleteOpenChange(value: boolean) {
   if (!value) deletingStatusId.value = null
 }
 
+// ========== ステータス編集（名前・色）==========
+
+const editingStatusId = ref<number | null>(null)
+const editingStatusName = ref('')
+const editingStatusColor = ref('')
+
+const statusUpdateMutation = useMutation({
+  mutationFn: ({ id, name, color }: { id: number; name?: string; color?: string }) =>
+    updateStatus(id, { name, color }),
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['statuses'] }),
+  onError: (err) => console.warn('Failed to update status:', err),
+})
+
+function startEditStatus(status: Status, event: MouseEvent) {
+  event.stopPropagation()
+  editingStatusId.value = status.id
+  editingStatusName.value = status.name
+  editingStatusColor.value = status.color
+}
+
+function commitStatusEdit(status: Status) {
+  const name = editingStatusName.value.trim()
+  if (!name || (name === status.name && editingStatusColor.value === status.color)) {
+    editingStatusId.value = null
+    return
+  }
+  statusUpdateMutation.mutate({ id: status.id, name, color: editingStatusColor.value })
+  editingStatusId.value = null
+}
+
+function cancelStatusEdit() {
+  editingStatusId.value = null
+}
+
 // ========== DnD ==========
 //
 // 楽観的更新は Issue #33 対応で撤去した。理由:
@@ -306,9 +340,36 @@ function handleDragEnd(event: { item: HTMLElement, to: HTMLElement, newIndex?: n
               :class="{ 'rotate-90': openMap[status.id] }"
               aria-hidden="true"
             />
-            <span class="text-sm font-semibold text-foreground">
-              {{ status.name }}
-            </span>
+            <!-- 名前インライン編集 -->
+            <template v-if="editingStatusId === status.id">
+              <input
+                v-model="editingStatusName"
+                type="text"
+                class="rounded border border-border bg-background px-1.5 py-0.5 text-sm font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                :style="{ minWidth: '6rem' }"
+                @click.stop
+                @keydown.enter.prevent="commitStatusEdit(status)"
+                @keydown.escape.prevent="cancelStatusEdit"
+                @blur="commitStatusEdit(status)"
+                @vue:mounted="(vnode: any) => vnode.el?.focus()"
+              >
+              <input
+                v-model="editingStatusColor"
+                type="color"
+                class="h-5 w-5 cursor-pointer rounded border-none bg-transparent p-0"
+                :title="'色を変更'"
+                @click.stop
+              >
+            </template>
+            <template v-else>
+              <span
+                class="cursor-text text-sm font-semibold text-foreground hover:underline"
+                :title="'クリックで名前を編集'"
+                @click.stop="startEditStatus(status, $event)"
+              >
+                {{ status.name }}
+              </span>
+            </template>
             <span class="rounded-full bg-muted px-2 py-0.5 text-sm font-medium tabular-nums text-muted-foreground">
               {{ inquiriesByStatus[status.id]?.length ?? 0 }}
             </span>
