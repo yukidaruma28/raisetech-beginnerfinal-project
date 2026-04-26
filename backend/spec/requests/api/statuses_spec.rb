@@ -148,4 +148,138 @@ RSpec.describe 'Api::Statuses', type: :request do
       end
     end
   end
+
+  describe 'DELETE /api/statuses/:id' do
+    context 'when the status has no inquiries' do
+      let!(:status) { create(:status, name: 'Empty', color: '#3498DB', position: 0) }
+
+      it 'returns 204 No Content' do
+        delete "/api/statuses/#{status.id}"
+        expect(response).to have_http_status(:no_content)
+        expect(response.body).to be_empty
+      end
+
+      it 'removes the record from the database' do
+        expect { delete "/api/statuses/#{status.id}" }
+          .to change(Status, :count).by(-1)
+      end
+
+      it 'no longer appears in GET /api/statuses' do
+        delete "/api/statuses/#{status.id}"
+        get '/api/statuses'
+        ids = JSON.parse(response.body).map { |s| s['id'] }
+        expect(ids).not_to include(status.id)
+      end
+
+      it 'ignores move_to query when there are no inquiries' do
+        other = create(:status, name: 'Other', color: '#FFFFFF', position: 1)
+        delete "/api/statuses/#{status.id}", params: { move_to: other.id }
+        expect(response).to have_http_status(:no_content)
+      end
+    end
+
+    context 'when the status does not exist' do
+      it 'returns 404 NOT_FOUND' do
+        delete '/api/statuses/999999'
+        expect(response).to have_http_status(:not_found)
+        expect(JSON.parse(response.body)['error']).to eq('NOT_FOUND')
+      end
+    end
+
+    context 'when the status has inquiries and move_to is omitted' do
+      let!(:priority) { create(:priority, level: 3) }
+      let!(:source)   { create(:status, name: 'Source', color: '#3498DB', position: 0) }
+      let!(:inquiry)  { create(:inquiry, status: source, priority: priority, position: 1) }
+
+      it 'returns 409 CONFLICT' do
+        delete "/api/statuses/#{source.id}"
+        expect(response).to have_http_status(:conflict)
+        json = JSON.parse(response.body)
+        expect(json['error']).to eq('CONFLICT')
+        expect(json['details']).to include('field' => 'moveTo', 'reason' => 'required_when_inquiries_exist')
+      end
+
+      it 'leaves the status and the inquiry untouched' do
+        delete "/api/statuses/#{source.id}"
+        expect(Status.exists?(source.id)).to be true
+        expect(Inquiry.find(inquiry.id).status_id).to eq(source.id)
+      end
+    end
+
+    context 'when move_to references a non-existent status' do
+      let!(:priority) { create(:priority, level: 3) }
+      let!(:source)   { create(:status, name: 'Source', color: '#3498DB', position: 0) }
+      let!(:inquiry)  { create(:inquiry, status: source, priority: priority, position: 1) }
+
+      it 'returns 404 NOT_FOUND with field=moveTo' do
+        delete "/api/statuses/#{source.id}", params: { move_to: 999_999 }
+        expect(response).to have_http_status(:not_found)
+        json = JSON.parse(response.body)
+        expect(json['error']).to eq('NOT_FOUND')
+        expect(json['details']).to include('field' => 'moveTo', 'reason' => 'not_found')
+      end
+
+      it 'leaves the source status and inquiry intact' do
+        delete "/api/statuses/#{source.id}", params: { move_to: 999_999 }
+        expect(Status.exists?(source.id)).to be true
+        expect(Inquiry.find(inquiry.id).status_id).to eq(source.id)
+      end
+    end
+
+    context 'when move_to equals the status itself' do
+      let!(:priority) { create(:priority, level: 3) }
+      let!(:source)   { create(:status, name: 'Source', color: '#3498DB', position: 0) }
+      let!(:inquiry)  { create(:inquiry, status: source, priority: priority, position: 1) }
+
+      it 'returns 422 UNPROCESSABLE_ENTITY with cannot_move_to_self' do
+        delete "/api/statuses/#{source.id}", params: { move_to: source.id }
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json['error']).to eq('UNPROCESSABLE_ENTITY')
+        expect(json['details']).to include('field' => 'moveTo', 'reason' => 'cannot_move_to_self')
+      end
+    end
+
+    context 'when relocating inquiries to a valid move_to' do
+      let!(:priority) { create(:priority, level: 3) }
+      let!(:source)   { create(:status, name: 'Source', color: '#3498DB', position: 0) }
+      let!(:target)   { create(:status, name: 'Target', color: '#FFFFFF', position: 1) }
+      let!(:source_inq_a) { create(:inquiry, status: source, priority: priority, title: 'A', position: 1) }
+      let!(:source_inq_b) { create(:inquiry, status: source, priority: priority, title: 'B', position: 2) }
+
+      it 'returns 204 No Content and deletes the source status' do
+        delete "/api/statuses/#{source.id}", params: { move_to: target.id }
+        expect(response).to have_http_status(:no_content)
+        expect(Status.exists?(source.id)).to be false
+      end
+
+      it 'reassigns all inquiries to the target status' do
+        delete "/api/statuses/#{source.id}", params: { move_to: target.id }
+        expect(Inquiry.find(source_inq_a.id).status_id).to eq(target.id)
+        expect(Inquiry.find(source_inq_b.id).status_id).to eq(target.id)
+      end
+
+      it 'renumbers target inquiries densely starting from 1' do
+        delete "/api/statuses/#{source.id}", params: { move_to: target.id }
+        positions = Inquiry.where(status_id: target.id).order(:position, :id).pluck(:position)
+        expect(positions).to eq([ 1, 2 ])
+      end
+
+      context 'when the target already has inquiries' do
+        let!(:target_inq_x) { create(:inquiry, status: target, priority: priority, title: 'X', position: 1) }
+        let!(:target_inq_y) { create(:inquiry, status: target, priority: priority, title: 'Y', position: 2) }
+
+        it 'appends moved inquiries after existing ones with dense positions 1..N+M' do
+          delete "/api/statuses/#{source.id}", params: { move_to: target.id }
+          rows = Inquiry.where(status_id: target.id).order(:position, :id).pluck(:title, :position)
+          expect(rows).to eq([
+            [ 'X', 1 ],
+            [ 'Y', 2 ],
+            [ 'A', 3 ],
+            [ 'B', 4 ]
+          ])
+        end
+      end
+    end
+  end
 end

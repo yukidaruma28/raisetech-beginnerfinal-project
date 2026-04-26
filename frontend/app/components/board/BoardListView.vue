@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ChevronRight } from 'lucide-vue-next'
+import { ChevronRight, Trash2 } from 'lucide-vue-next'
 import { VueDraggable } from 'vue-draggable-plus'
 import { fetchStatuses } from '~/lib/api/statuses'
 import { fetchPriorities } from '~/lib/api/priorities'
@@ -12,6 +12,7 @@ import type { Inquiry } from '~/types/inquiry'
 import InquiryRow from './InquiryRow.vue'
 import InquiryEditDialog from './InquiryEditDialog.vue'
 import CreateStatusDialog from './CreateStatusDialog.vue'
+import DeleteStatusDialog from './DeleteStatusDialog.vue'
 import { STATUS_MAX_COUNT } from '~/lib/validation/status'
 
 const statusesQuery = useQuery<Status[]>({
@@ -72,14 +73,24 @@ const inquiriesByStatus = computed<Record<number, Inquiry[]>>(() => {
 // VueDraggable は v-model で双方向バインドを要求するため、status ごとのローカル配列を持つ。
 // inquiriesByStatus が更新されたら都度ローカルへ反映する（楽観的更新後の setQueryData も
 // inquiriesByStatus 経由で流れてくる想定）。
+//
+// 空ステータス（Issue #33）対応:
+//   inquiriesByStatus は inquiry を持つ status の id しかキーに持たないため、
+//   そのまま使うと空 status の VueDraggable v-if が常に false で描画されず、
+//   drop ターゲットが消滅する。statusesQuery 全件を見て空配列で seed してから
+//   inquiries を上書きすることで、すべての status で VueDraggable が render される。
 const localLists = ref<Record<number, Inquiry[]>>({})
 watch(
-  inquiriesByStatus,
-  (next) => {
-    localLists.value = {}
-    for (const [statusId, list] of Object.entries(next)) {
-      localLists.value[Number(statusId)] = [...list]
+  [inquiriesByStatus, () => statusesQuery.data.value],
+  ([next, statuses]) => {
+    const seeded: Record<number, Inquiry[]> = {}
+    for (const status of statuses ?? []) {
+      seeded[status.id] = []
     }
+    for (const [statusId, list] of Object.entries(next)) {
+      seeded[Number(statusId)] = [...list]
+    }
+    localLists.value = seeded
   },
   { immediate: true, deep: true },
 )
@@ -121,6 +132,29 @@ function openEdit(inquiry: Inquiry) {
 
 function closeEdit() {
   editingId.value = null
+}
+
+// ステータス削除ダイアログ。開いている status を id で保持する。
+const deletingStatusId = ref<number | null>(null)
+const deletingStatus = computed<Status | null>(() => {
+  if (deletingStatusId.value == null) return null
+  return statusesQuery.data.value?.find(s => s.id === deletingStatusId.value) ?? null
+})
+const deletingInquiryCount = computed(() => {
+  if (deletingStatus.value == null) return 0
+  return inquiriesByStatus.value[deletingStatus.value.id]?.length ?? 0
+})
+const deletingOtherStatuses = computed<Status[]>(() => {
+  if (deletingStatus.value == null) return []
+  return (statusesQuery.data.value ?? []).filter(s => s.id !== deletingStatus.value!.id)
+})
+
+function openDelete(status: Status) {
+  deletingStatusId.value = status.id
+}
+
+function handleDeleteOpenChange(value: boolean) {
+  if (!value) deletingStatusId.value = null
 }
 
 // ========== DnD ==========
@@ -227,41 +261,58 @@ function optimisticReorder(
         :key="status.id"
         class="border-b border-border last:border-b-0"
       >
-        <button
-          type="button"
-          class="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-muted/40"
-          :aria-expanded="openMap[status.id] ?? true"
-          @click="toggle(status.id)"
-        >
-          <ChevronRight
-            class="h-4 w-4 text-muted-foreground transition-transform duration-150"
-            :class="{ 'rotate-90': openMap[status.id] }"
-            aria-hidden="true"
-          />
-          <span
-            class="inline-block h-3 w-3 rounded-full"
-            :style="{ backgroundColor: status.color }"
-            aria-hidden="true"
-          />
-          <span class="text-base font-semibold text-foreground">
-            {{ status.name }}
-          </span>
-          <span class="text-sm text-muted-foreground tabular-nums">
-            {{ inquiriesByStatus[status.id]?.length ?? 0 }}
-          </span>
-        </button>
-
-        <div v-show="openMap[status.id]">
-          <div
-            v-if="!inquiriesByStatus[status.id]?.length"
-            class="px-6 py-2 text-sm text-muted-foreground"
+        <!--
+          ヘッダー行。トグル用 <button> と削除用 <button> が並ぶ独立要素になっているため
+          group / hover でゴミ箱アイコンを表示する（InquiryRow のドラッグハンドルと同パターン）。
+        -->
+        <div class="group flex w-full items-center hover:bg-muted/40">
+          <button
+            type="button"
+            class="flex flex-1 items-center gap-2 px-4 py-3 text-left"
+            :aria-expanded="openMap[status.id] ?? true"
+            @click="toggle(status.id)"
           >
-            該当なし
-          </div>
+            <ChevronRight
+              class="h-4 w-4 text-muted-foreground transition-transform duration-150"
+              :class="{ 'rotate-90': openMap[status.id] }"
+              aria-hidden="true"
+            />
+            <span
+              class="inline-block h-3 w-3 rounded-full"
+              :style="{ backgroundColor: status.color }"
+              aria-hidden="true"
+            />
+            <span class="text-base font-semibold text-foreground">
+              {{ status.name }}
+            </span>
+            <span class="text-sm text-muted-foreground tabular-nums">
+              {{ inquiriesByStatus[status.id]?.length ?? 0 }}
+            </span>
+          </button>
+          <button
+            type="button"
+            class="mr-2 inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
+            :aria-label="`「${status.name}」を削除`"
+            @click.stop="openDelete(status)"
+          >
+            <Trash2 class="h-4 w-4" />
+          </button>
+        </div>
+
+        <div v-show="openMap[status.id]" class="relative">
           <!--
             VueDraggable は SSR で document を触る可能性があるので ClientOnly で包む。
             data-status-id を root に付けて、@end の event.to から新ステータスを取得する。
             handle セレクタで GripVertical アイコンだけドラッグ起点に限定。
+
+            空列対応（Issue #33）:
+              - VueDraggable コンテナに class="min-h-[56px]" を当て、空配列でも
+                drop target になる物理的な領域を確保する。
+              - empty-insert-threshold を Sortable のデフォルト 5px → 40px に拡げ、
+                カーソルが近接するだけで insert を受け付けるようにする。
+              - 「該当なし」テキストは VueDraggable の sibling として配置し、
+                親 div を relative にした上で absolute + pointer-events-none で
+                空 drop 領域に視覚的に重ねる（drag イベントを邪魔しない）。
           -->
           <ClientOnly>
             <VueDraggable
@@ -272,6 +323,8 @@ function optimisticReorder(
               group="inquiries"
               handle="[data-drag-handle]"
               ghost-class="opacity-30"
+              :empty-insert-threshold="40"
+              class="min-h-[56px]"
               @end="handleDragEnd"
             >
               <InquiryRow
@@ -285,6 +338,12 @@ function optimisticReorder(
               />
             </VueDraggable>
           </ClientOnly>
+          <div
+            v-if="!inquiriesByStatus[status.id]?.length"
+            class="pointer-events-none absolute inset-x-0 top-0 flex h-[56px] items-center px-6 text-sm italic text-muted-foreground"
+          >
+            該当なし（ここにドロップで移動できます）
+          </div>
         </div>
       </div>
 
@@ -317,6 +376,21 @@ function optimisticReorder(
         :statuses="statusesQuery.data.value ?? []"
         :priorities="prioritiesQuery.data.value ?? []"
         @close="closeEdit"
+      />
+    </ClientOnly>
+
+    <!--
+      ステータス削除ダイアログ。reka-ui Dialog は SSR で IPC エラーになるため ClientOnly。
+      v-if で都度マウントすることで前回の選択 state を残さない。
+    -->
+    <ClientOnly>
+      <DeleteStatusDialog
+        v-if="deletingStatus"
+        :open="true"
+        :status="deletingStatus"
+        :inquiry-count="deletingInquiryCount"
+        :other-statuses="deletingOtherStatuses"
+        @update:open="handleDeleteOpenChange"
       />
     </ClientOnly>
   </section>

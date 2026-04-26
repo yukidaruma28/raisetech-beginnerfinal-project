@@ -40,6 +40,16 @@ module Api
       }, status: :bad_request
     end
 
+    # 409: リクエスト自体は妥当だが、現在のリソース状態と矛盾するため実行できない。
+    # 例: 所属 Inquiry が残った状態でのステータス削除（移動先 `move_to` が必要）。
+    def render_conflict(message: "現在の状態では実行できません", details: [])
+      render json: {
+        error: "CONFLICT",
+        message: message,
+        details: details
+      }, status: :conflict
+    end
+
     def handle_record_not_found(_exception)
       render_not_found
     end
