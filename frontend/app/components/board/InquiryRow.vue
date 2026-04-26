@@ -27,8 +27,8 @@ function formatDate(iso: string | undefined): string {
 <template>
   <!--
     Inquiry 行全体を「ボタン化」して詳細モーダル（編集）を開く。
-    checkbox（UC-04 選択用）と PriorityIcon（後続のクイック変更用）は
-    クリックで親への伝播を止め、誤って編集モーダルが開かないようにする。
+    PriorityIcon（後続のクイック変更用）はクリックで親への伝播を止め、
+    誤って編集モーダルが開かないようにする。
   -->
   <div
     role="button"
@@ -52,13 +52,6 @@ function formatDate(iso: string | undefined): string {
     >
       <GripVertical class="h-4 w-4" />
     </span>
-
-    <input
-      type="checkbox"
-      class="h-4 w-4 shrink-0 cursor-pointer rounded border-border opacity-0 transition-opacity group-hover:opacity-100"
-      :aria-label="`タスク ${inquiry.id} を選択`"
-      @click.stop
-    >
 
     <PriorityIcon v-if="priority" :priority="priority" @click.stop />
 
