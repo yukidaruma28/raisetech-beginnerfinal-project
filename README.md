@@ -1,20 +1,30 @@
 # 視聴管理アプリ
 
-<img width="1920" height="957" alt="image" src="https://github.com/user-attachments/assets/b4e2b939-41a0-4be8-9736-c98974c1c701" />
+![Backend CI](https://github.com/yukidaruma28/raisetech-beginnerfinal-project/actions/workflows/backend-ci.yml/badge.svg) ![Frontend CI](https://github.com/yukidaruma28/raisetech-beginnerfinal-project/actions/workflows/frontend-ci.yml/badge.svg)
 
-説明動画（YouTubeへ遷移します）
-https://youtu.be/tQxZqqJAMuI
+Linear 風の UI でアニメ・映画の視聴進捗をステータス別グループリストで管理する、シングルユーザー向けの個人用アプリ。RaiseTech 初級編 最終課題のポートフォリオ作品。
+
+- **🌐 本番デモ**: http://13.193.154.150:8080/
+- **特徴**: シングルユーザー / 認証なし / 1 ボード固定 / DnD で並び替え
+- **スタック**: Rails 8.1（API mode）/ Nuxt 4（Vue 3）/ MySQL 8 / AWS EC2 + RDS / Terraform / Docker
+
+<img width="1920" height="957" alt="視聴管理アプリのスクリーンショット" src="https://github.com/user-attachments/assets/b4e2b939-41a0-4be8-9736-c98974c1c701" />
+
+[▶ 説明動画を見る](https://youtu.be/tQxZqqJAMuI)
+
+---
 
 ## できること
+
 ### 作品（カード）
 - 一覧をステータス別グループリストで表示（ステータス列にグループ化）
 - 新規作成（タイトル・説明・ステータス・優先度を指定）
 - タイトル・説明・ステータス・優先度を編集（カードクリックでモーダル → 各フィールドをインライン編集・自動保存）
 - 削除
 - 列内・列間を ドラッグアンドドロップ で並び替え
-- ステータス列
 
-### 一覧表示（position 順）
+### ステータス列
+- 一覧表示（position 順）
 - 新規作成（名前・色を指定）
 - 名前・色を編集（ヘッダークリックでインライン入力 → フォーカスアウトで自動保存）
 - 削除（所属作品がある場合は移動先ステータスを指定して付け替えてから削除）
@@ -22,14 +32,6 @@ https://youtu.be/tQxZqqJAMuI
 
 ### 優先度
 - 高 / 中 / 低 の 3 段階固定（追加・編集・削除は UI 非提供）
-
-Linear 風の UI でアニメ・映画の視聴進捗をステータス別グループリストで管理する、シングルユーザー向けの個人用アプリ。RaiseTech 初級編 最終課題のポートフォリオ作品。
-
-- **🌐 本番デモ**: http://13.193.154.150:8080/
-- (もし作品が見られない場合は、shift+ctrl+R で強制リロードをしてください
-)
-- **特徴**: シングルユーザー / 認証なし / 1 ボード固定 / DnD で並び替え
-- **スタック**: Rails 8.1（API mode）/ Nuxt 4（Vue 3）/ MySQL 8 / AWS EC2 + RDS / Terraform / Docker
 
 ---
 
@@ -44,6 +46,7 @@ Linear 風の UI でアニメ・映画の視聴進捗をステータス別グル
 ---
 
 ## 技術スタック
+
 ### フロントエンド
 - Nuxt 4（Vue 3 / TypeScript）
 - Tailwind CSS 4
