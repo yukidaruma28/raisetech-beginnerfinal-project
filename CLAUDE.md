@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-Linear 風の問い合わせ管理アプリ。シングルユーザー・1ボード固定・認証なし。
+アニメ・映画の視聴管理アプリ。シングルユーザー・1ボード固定・認証なし。
 
 詳細な要件定義は [docs/requirements.md](docs/requirements.md) を参照。
 
@@ -160,8 +160,8 @@ cd frontend && npx nuxi typecheck
     │   │   ├── ui/            shadcn-vue のコンポーネント
     │   │   └── board/
     │   │       ├── StatusColumns.vue  ステータス列ヘッダー
-    │   │       ├── InquiryCard.vue    問い合わせカード（予定）
-    │   │       └── InquiryModal.vue   問い合わせ詳細モーダル（予定）
+    │   │       ├── InquiryCard.vue    作品カード（予定）
+    │   │       └── InquiryModal.vue   作品詳細モーダル（予定）
     │   ├── lib/api/           Rails API クライアント（fetch ベース）
     │   ├── plugins/           Nuxt プラグイン（vue-query 等）
     │   ├── assets/css/        Tailwind v4 エントリ

@@ -183,7 +183,7 @@ function confirmDelete() {
 }
 
 // ========== display helpers ==========
-const taskCode = computed(() => `TASK-${props.inquiry.id}`)
+const taskCode = computed(() => `作品-${props.inquiry.id}`)
 const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '本文なし')
 </script>
 
@@ -209,7 +209,7 @@ const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '
           </Button>
         </div>
         <DialogDescription class="sr-only">
-          問い合わせを編集します。各フィールドをクリックして編集すると、フォーカスを外したときに自動保存されます。
+          作品を編集します。各フィールドをクリックして編集すると、フォーカスを外したときに自動保存されます。
         </DialogDescription>
       </DialogHeader>
 
@@ -225,7 +225,7 @@ const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '
         <!-- タイトル -->
         <div class="grid gap-1.5">
           <label class="text-sm font-medium leading-none text-muted-foreground">
-            タイトル
+            作品名
           </label>
           <input
             v-if="editingField === 'title'"
@@ -254,7 +254,7 @@ const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '
         <!-- 本文 -->
         <div class="grid gap-1.5">
           <label class="text-sm font-medium leading-none text-muted-foreground">
-            本文
+            メモ・感想
           </label>
           <textarea
             v-if="editingField === 'description'"
@@ -284,7 +284,7 @@ const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="grid gap-1.5">
             <label class="text-sm font-medium leading-none text-muted-foreground">
-              ステータス
+              視聴ステータス
             </label>
             <select
               :value="inquiry.statusId"
@@ -304,7 +304,7 @@ const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '
 
           <div class="grid gap-1.5">
             <label class="text-sm font-medium leading-none text-muted-foreground">
-              優先度
+              気になり度
             </label>
             <select
               :value="inquiry.priorityId"
@@ -345,7 +345,7 @@ const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '
           {{ taskCode }} を削除しますか？
         </DialogTitle>
         <DialogDescription>
-          この問い合わせは復元できません。本当に削除してよろしいですか？
+          この作品は復元できません。本当に削除してよろしいですか？
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>

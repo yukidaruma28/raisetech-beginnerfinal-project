@@ -140,9 +140,9 @@ function humanizeReason(field: string, reason: string): string {
     </DialogTrigger>
     <DialogContent class="sm:max-w-[640px]">
       <DialogHeader>
-        <DialogTitle>新しい問い合わせ</DialogTitle>
+        <DialogTitle>作品を追加</DialogTitle>
         <DialogDescription>
-          タイトルを入力し、ステータスと優先度を選択して作成してください。
+          作品名を入力し、視聴ステータスと気になり度を選択してください。
         </DialogDescription>
       </DialogHeader>
 
@@ -158,7 +158,7 @@ function humanizeReason(field: string, reason: string): string {
         <!-- タイトル -->
         <div class="grid gap-1.5">
           <label for="inquiry-title" class="text-sm font-medium leading-none">
-            タイトル <span class="text-red-600">*</span>
+            作品名 <span class="text-red-600">*</span>
           </label>
           <input
             id="inquiry-title"
@@ -167,7 +167,7 @@ function humanizeReason(field: string, reason: string): string {
             type="text"
             class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             :class="{ 'border-red-500 focus-visible:ring-red-500': errors.title }"
-            placeholder="例) ログインできない"
+            placeholder="例：鬼滅の刃、君の名は。"
             autocomplete="off"
           >
           <p v-if="open && errors.title" class="text-xs text-red-600">
@@ -178,7 +178,7 @@ function humanizeReason(field: string, reason: string): string {
         <!-- 本文 -->
         <div class="grid gap-1.5">
           <label for="inquiry-description" class="text-sm font-medium leading-none">
-            本文
+            メモ・感想
           </label>
           <textarea
             id="inquiry-description"
@@ -187,7 +187,7 @@ function humanizeReason(field: string, reason: string): string {
             rows="6"
             class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             :class="{ 'border-red-500 focus-visible:ring-red-500': errors.description }"
-            placeholder="（任意）詳細を記載してください"
+            placeholder="感想・メモを入力（任意）"
           />
           <p v-if="open && errors.description" class="text-xs text-red-600">
             {{ errors.description }}
@@ -198,7 +198,7 @@ function humanizeReason(field: string, reason: string): string {
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="grid gap-1.5">
             <label for="inquiry-status" class="text-sm font-medium leading-none">
-              ステータス
+              視聴ステータス
             </label>
             <select
               id="inquiry-status"
@@ -218,7 +218,7 @@ function humanizeReason(field: string, reason: string): string {
 
           <div class="grid gap-1.5">
             <label for="inquiry-priority" class="text-sm font-medium leading-none">
-              優先度
+              気になり度
             </label>
             <select
               id="inquiry-priority"

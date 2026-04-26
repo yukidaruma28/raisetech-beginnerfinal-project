@@ -33,7 +33,7 @@ function formatDate(iso: string | undefined): string {
   <div
     role="button"
     tabindex="0"
-    :aria-label="`問い合わせ ${inquiry.id} を編集`"
+    :aria-label="`作品 ${inquiry.id} を編集`"
     class="group flex cursor-pointer items-center gap-3 border-b border-border/40 px-6 py-2.5 text-base hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:outline-none"
     @click="emit('open', inquiry)"
     @keydown.enter.space.prevent="emit('open', inquiry)"
@@ -56,7 +56,7 @@ function formatDate(iso: string | undefined): string {
     <PriorityIcon v-if="priority" :priority="priority" @click.stop />
 
     <span class="w-20 shrink-0 font-mono text-sm text-muted-foreground">
-      TASK-{{ inquiry.id }}
+      作品-{{ inquiry.id }}
     </span>
 
     <span
