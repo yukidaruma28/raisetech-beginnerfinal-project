@@ -38,7 +38,12 @@
       "Bash(pwd)",
       "Bash(which *)",
       "Bash(curl *)",
-      "Bash(jq *)"
+      "Bash(jq *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('statuses:', [s['name'] for s in d]\\)\")",
+      "Bash(aws rds *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import json,sys; s=json.load\\(sys.stdin\\); [print\\(r['type'], r['name'], r.get\\('instances',[{}]\\)[0].get\\('attributes',{}\\).get\\('id',''\\)\\) for r in s.get\\('resources',[]\\) if r['type'] in \\('aws_instance','aws_eip','aws_db_instance','aws_ecr_repository'\\)]\")",
+      "Bash(aws elbv2 *)"
     ],
     "deny": [
       "Bash(rm *)",
