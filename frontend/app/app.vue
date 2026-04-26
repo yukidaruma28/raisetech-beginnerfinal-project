@@ -8,7 +8,7 @@ import CreateInquiryDialog from '~/components/board/CreateInquiryDialog.vue'
     <header class="border-b">
       <div class="mx-auto flex max-w-7xl items-center px-6 py-5">
         <h1 class="text-2xl font-semibold">
-          Inquiry Board
+          視聴管理ボード
         </h1>
         <!--
           reka-ui の Dialog は SSR で IPC connection closed エラーを起こすため
