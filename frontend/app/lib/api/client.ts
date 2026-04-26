@@ -26,7 +26,12 @@ export interface ApiErrorPayload {
 
 export function apiUrl(path: string): string {
   const config = useRuntimeConfig()
-  const base = config.public.apiBaseUrl.replace(/\/$/, '')
+  // SSR: private apiBaseUrl (backend コンテナ内部 URL) を優先。
+  // CSR: public apiBaseUrl（本番では空文字 → nginx 経由の相対パス）。
+  const base = (import.meta.server && config.apiBaseUrl
+    ? config.apiBaseUrl
+    : config.public.apiBaseUrl
+  ).replace(/\/$/, '')
   const normalized = path.startsWith('/') ? path : `/${path}`
   return `${base}${normalized}`
 }
