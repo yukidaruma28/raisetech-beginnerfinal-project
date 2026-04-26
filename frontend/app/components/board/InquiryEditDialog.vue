@@ -183,7 +183,7 @@ function confirmDelete() {
 }
 
 // ========== display helpers ==========
-const taskCode = computed(() => `TASK-${props.inquiry.id}`)
+const taskCode = computed(() => `作品-${props.inquiry.id}`)
 const descriptionDisplay = computed(() => props.inquiry.description?.trim() || '本文なし')
 </script>
 

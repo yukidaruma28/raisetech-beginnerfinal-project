@@ -56,7 +56,7 @@ function formatDate(iso: string | undefined): string {
     <PriorityIcon v-if="priority" :priority="priority" @click.stop />
 
     <span class="w-20 shrink-0 font-mono text-sm text-muted-foreground">
-      TASK-{{ inquiry.id }}
+      作品-{{ inquiry.id }}
     </span>
 
     <span
