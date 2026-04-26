@@ -1,154 +1,92 @@
-# raisetech-beginner-final（仮）
+# 視聴管理アプリ
 
-Linear 風の問い合わせ管理アプリ。RaiseTech 初級編 最終課題としてのポートフォリオ作品。
+Linear 風の UI でアニメ・映画の視聴進捗をカンバン管理する、シングルユーザー向けの個人用アプリ。RaiseTech 初級編 最終課題のポートフォリオ作品。
 
-- **スタック**: Ruby on Rails 8.1（API mode）/ Nuxt 4（Vue 3）/ MySQL 8
-- **要件・設計**: [docs/requirements.md](docs/requirements.md) を起点にすべての設計ドキュメントを参照
-- **開発者向けガイド**: [CLAUDE.md](CLAUDE.md)（Claude Code が自動で読む。人間も参照可）
+- **🌐 本番デモ**: http://54.64.68.36:8080/
+- **特徴**: シングルユーザー / 認証なし / 1 ボード固定 / DnD で並び替え
+- **スタック**: Rails 8.1（API mode）/ Nuxt 4（Vue 3）/ MySQL 8 / AWS EC2 + RDS / Terraform / Docker
+
+詳しい要件・設計は [docs/requirements.md](docs/requirements.md) を起点に各設計ドキュメントへ辿れる。
 
 ---
 
-## Quick Start（新規マシンで一からセットアップする）
+## アーキテクチャ
 
-以下の手順を上から順に実行すれば、空のリポジトリから開発可能な状態まで再現できる。
+```
+ローカル開発:
+  [host]   npm run dev (Nuxt :3000)
+              ↓ HTTP
+  [docker] backend (Rails :3001) ─→ mysql (:3306)
 
-### 1. GitHub リポジトリとして登録する
+本番 (EC2 + RDS):
+  Internet → :8080 [nginx] ─┬─ /api/* → backend (Rails :80)
+                            └─ /*     → nuxt    (Nuxt :3000)
+                                            ↓
+                                        RDS MySQL
+```
 
-このディレクトリ（`newapp/`）をそのまま git リポジトリ化して GitHub にプッシュする。
+ローカルは backend と DB を Docker で動かし、Nuxt はホスト側で `npm run dev`。本番は nginx を front に置いた 3 コンテナ構成で、ECR の latest タグを SSM 経由で pull する。
+
+---
+
+## Quick Start
+
+### 前提ツール
+
+| ツール | バージョン | 用途 |
+|------|---------|------|
+| Docker Desktop | 最新 | バックエンド + MySQL |
+| Node.js | 22 LTS 以上 | Nuxt 開発サーバー |
+| Git | 最新 | バージョン管理 |
+| GitHub CLI (`gh`) | 任意 | Issue / PR 自動化 |
+
+### 起動手順
 
 ```bash
-# このディレクトリのルートで実行
-cd path/to/newapp
+# 1. clone
+git clone <REPO_URL> raiseTech_Linear
+cd raiseTech_Linear
 
-# git 初期化
-git init -b main
-
-# main への直接プッシュを拒否する pre-push フックを有効化
+# 2. main 直 push を防止する pre-push フックを有効化
 git config core.hooksPath .githooks
-chmod +x .githooks/pre-push
 
-# 初期コミット
-git add .
-git commit -m "chore: initial project scaffold with Claude Code config"
+# 3. バックエンド (MySQL + Rails) を起動
+docker compose up -d
+# → MySQL: localhost:3306, Rails API: localhost:3001
+# 初回は backend コンテナ内で bundle install + db:prepare が走るので数分かかる
 
-# GitHub 上に private リポジトリを作成して push（gh CLI 使用）
-gh repo create raisetech-beginner-final --private --source=. --remote=origin --push
-
-# （リポジトリ名は任意。public にする場合は --public に変更）
-```
-
-gh CLI が未設定なら `gh auth login` を先に済ませる。
-
-### 2. Docker で MySQL を起動する
-
-```bash
-docker-compose up -d
-# → MySQL が localhost:3306 で起動
-```
-
-`docker-compose.yml` が未作成の場合は、以下を `newapp/docker-compose.yml` として置く：
-
-```yaml
-services:
-  mysql:
-    image: mysql:8.0
-    container_name: inquiry_mysql
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: inquiry_tracker
-      MYSQL_USER: inquiry
-      MYSQL_PASSWORD: inquirypass
-    volumes:
-      - mysql_data:/var/lib/mysql
-    command: --default-authentication-plugin=caching_sha2_password
-
-volumes:
-  mysql_data:
-```
-
-### 3. バックエンド（Rails API）を scaffold する
-
-```bash
-# プロジェクトルートで
-rails new backend --api --database=mysql --skip-test
-
-cd backend
-
-# Gemfile に追加（末尾にまとめて追記）
-bundle add jsonapi-serializer rack-cors
-bundle add rspec-rails factory_bot_rails --group development,test
-bundle add dotenv-rails --group development,test
-
-# RSpec 初期化
-bundle exec rails generate rspec:install
-
-# DB 接続を docker-compose.yml に合わせる
-# config/database.yml の default: を以下に差し替える（例）
-#
-#   default: &default
-#     adapter: mysql2
-#     encoding: utf8mb4
-#     username: inquiry
-#     password: inquirypass
-#     host: 127.0.0.1
-#     port: 3306
-
-bundle exec rails db:create db:migrate
-
-# 起動確認（ポート 3001）
-bundle exec rails server -p 3001
-# → http://localhost:3001
-```
-
-### 4. フロントエンド（Nuxt 4 / Vue 3）を scaffold する
-
-```bash
-# プロジェクトルートに戻って
-cd ..
-
-npx nuxi@latest init frontend --template minimal --packageManager npm --gitInit false
-
+# 4. フロントエンドを起動
 cd frontend
 npm install
-
-# 依存ライブラリ追加
-npm install @tanstack/vue-query vue-draggable-plus zod@^3.25.0 \
-            lucide-vue-next vee-validate @vee-validate/zod \
-            clsx tailwind-merge class-variance-authority reka-ui
-
-# Tailwind v4（Nuxt 4 用に Vite プラグイン直接ロード）
-npm install -D tailwindcss @tailwindcss/vite tw-animate-css shadcn-nuxt
-
-# shadcn-vue 初期化（components.json を手動配置 + 必要に応じて add）
-# 詳細は frontend/components.json と frontend/nuxt.config.ts を参照
-npx shadcn-vue@latest add card
-
-# 起動確認（ポート 3000）
 npm run dev
 # → http://localhost:3000
 ```
 
-### 5. 日常の開発フロー
+ブラウザで http://localhost:3000 を開いてボードが表示されれば成功。
 
-- 新機能に着手するときは Claude Code で `/go {機能説明}` と入力する
-  → Plan モードで実装計画作成 → GitHub Issue 作成 → ブランチ作成 → 実装 → PR まで自動化される
-- 詳細な規約は [CLAUDE.md](CLAUDE.md) の「開発フロー」セクション
+---
 
-### 6. CI（GitHub Actions）
+## よく使うコマンド
 
-PR を作成すると以下のワークフローが自動で走る。すべて green でないとマージできない。
+### Rails（必ずコンテナ越しに発行）
 
-| ワークフロー | 走る条件 | 内容 |
-|-------------|---------|------|
-| `backend-ci.yml` | `backend/**` の変更 | RSpec / RuboCop / Brakeman |
-| `frontend-ci.yml` | `frontend/**` の変更 | ESLint / `nuxi typecheck` |
-| `check-checkboxes.yml` | 常時 | PR テンプレートと関連 Issue のチェックボックスがすべて埋まっていること |
-| `check-issue-link.yml` | 常時 | PR 本文に `Closes #N` 等の Issue 参照があること |
-| `check-branch-name.yml` | 常時 | ブランチ名が命名規則に沿っていること |
+Windows 環境の libmysqlclient 互換問題を避けるため、Rails コマンドはホストではなく `backend` コンテナ内で実行する。
 
-ローカルで PR 前に同等の確認を行うには：
+```bash
+docker compose exec backend bundle exec rails console
+docker compose exec backend bundle exec rails db:migrate
+docker compose exec backend bundle exec rspec
+```
+
+### 環境のリセット / トラブル対処
+
+```bash
+docker compose down -v   # DB データも含めて完全リセット
+npx kill-port 3000       # フロントのポートを解放
+npx kill-port 3001       # バックエンドのポートを解放
+```
+
+### PR 前の Lint / 型チェック（CI と同じ）
 
 ```bash
 # Backend（docker compose 起動済み前提）
@@ -164,33 +102,85 @@ npx nuxi typecheck
 
 ---
 
+## 開発フロー
+
+- Claude Code で `/go {機能説明}` を実行すると、Plan 作成 → Issue 作成 → ブランチ作成 → 実装 → PR まで自動化される
+- ブランチ命名: `feature/{番号}-{slug}` / `fix/...` / `chore/...` / `docs/...`
+- PR タイトル: `feat: {機能名}-#{Issue番号}`（例: `feat: ステータス編集-#48`）
+- PR 本文の冒頭に `Closes #N` を記載（マージ時に Issue 自動クローズ）
+- 詳細な規約は [CLAUDE.md](CLAUDE.md) の「開発フロー」セクション
+
+---
+
+## CI ワークフロー
+
+PR を作成すると以下が自動で走り、すべて green でないとマージできない。
+
+| ワークフロー | トリガー | 内容 |
+|-------------|---------|------|
+| `backend-ci.yml` | `backend/**` 変更 | RSpec / RuboCop / Brakeman |
+| `frontend-ci.yml` | `frontend/**` 変更 | ESLint / `nuxi typecheck` |
+| `check-branch-name.yml` | 全 PR | ブランチ名規則チェック |
+| `check-checkboxes.yml` | 全 PR | PR / Issue のチェックボックス完了確認 |
+| `check-issue-link.yml` | 全 PR | `Closes #N` 等の Issue 参照確認 |
+
+---
+
+## 本番デプロイ
+
+### 構成
+
+- **EC2**: 既存インスタンス `i-031ce57e84c26ca37`（Amazon Linux 2023）を再利用
+- **RDS**: 専用 MySQL インスタンス `kanban-linear-db`
+- **ECR**: `kanban-linear-backend` / `kanban-linear-frontend` の 2 リポジトリ（最新 3 世代を保持）
+- **コンテナ**: nginx (8080) + nuxt (3000) + rails (80) を `infra/docker-compose.prod.yml` で管理
+- **systemd**: `kanban-linear.service` で OS 起動時に自動起動
+- **デプロイ方式**: SSH 不要。`deploy.sh` が AWS SSM Send-Command で EC2 にコマンドを発行する
+
+### 前提
+
+- AWS CLI が `kanban` プロファイルで設定済み（`aws sts get-caller-identity --profile kanban`）
+- Terraform 1.10 以上
+- Docker Desktop 起動
+- `jq` インストール済み（Windows: `winget install jqlang.jq`）
+
+### 初回セットアップ
+
+```bash
+# 1. Terraform で RDS / ECR を作成
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+# → terraform.tfvars の db_password を強い値に書き換える（例: openssl rand -base64 32）
+terraform init
+terraform apply
+
+# 2. EC2 の初回セットアップ（Docker + Compose v2 + systemd 登録、SSM 経由）
+cd ../..
+bash infra/ec2-setup.sh
+```
+
+### 通常デプロイ（更新時）
+
+```bash
+DB_USERNAME=inquiry DB_PASSWORD=<terraform.tfvars と同じ値> bash deploy.sh
+```
+
+実行内容: ローカルで Docker イメージビルド → ECR push → EC2 で `docker compose pull` + `up -d` → `db:prepare` + `db:seed`。
+
+完了後 http://54.64.68.36:8080/ で確認。
+
+---
+
 ## ドキュメント
 
 | ファイル | 内容 |
 |---------|------|
-| [docs/requirements.md](docs/requirements.md) | 要件定義（トップ。他ドキュメントへの索引を含む） |
+| [docs/requirements.md](docs/requirements.md) | 要件定義（トップ。他ドキュメントへの索引） |
 | [docs/use-cases.md](docs/use-cases.md) | ユースケース UC-01〜15 |
-| [docs/non-functional.md](docs/non-functional.md) | 非機能要件 |
-| [docs/data-design.md](docs/data-design.md) | ER 図・テーブル定義・position 管理ルール |
+| [docs/non-functional.md](docs/non-functional.md) | 非機能要件・インフラ運用 |
+| [docs/data-design.md](docs/data-design.md) | ER 図・テーブル定義・position 管理 |
 | [docs/api-design.md](docs/api-design.md) | REST API 仕様 |
 | [docs/screen-design.md](docs/screen-design.md) | 画面レイアウト・インタラクション |
-| [docs/tech-stack.md](docs/tech-stack.md) | 採用ライブラリとバージョン整合性 |
-| [docs/setup-notes.md](docs/setup-notes.md) | 本テンプレートの由来・差分サマリ（raisetech_kanban 比較） |
-
----
-
-## 前提ツール
-
-| ツール | バージョン | インストール例 |
-|-------|---------|--------------|
-| Git | 最新 | 省略 |
-| GitHub CLI (`gh`) | 最新 | `winget install GitHub.cli` |
-| Docker Desktop | 最新 | 省略 |
-| Ruby | 3.4 以上 | `winget install RubyInstallerTeam.RubyWithDevKit.3.4` |
-| Node.js | 22 LTS 以上 | `winget install OpenJS.NodeJS.LTS` |
-
----
-
-## デプロイ
-
-AWS EC2 + RDS MySQL（既存 raisetech_kanban インスタンスと同居運用）。詳細は `docs/non-functional.md` の「インフラ・運用」を参照。Terraform 構成は別途追加予定。
+| [docs/tech-stack.md](docs/tech-stack.md) | 採用ライブラリ・バージョン整合性 |
+| [docs/setup-notes.md](docs/setup-notes.md) | テンプレートの由来・差分サマリ |
+| [CLAUDE.md](CLAUDE.md) | Claude Code 用開発ガイド（人間も参照可） |
