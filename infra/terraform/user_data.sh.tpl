@@ -13,8 +13,8 @@ if [ ! -f /swapfile ]; then
   echo '/swapfile none swap sw 0 0' >> /etc/fstab
 fi
 
-# 2. Docker インストール
-dnf install -y docker
+# 2. Docker + git インストール
+dnf install -y docker git
 systemctl enable --now docker
 usermod -aG docker ec2-user
 

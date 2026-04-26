@@ -10,7 +10,7 @@
 | 利用者 | シングルユーザー（自分のみ） |
 | 認証 | なし |
 | ボード数 | 1ボード固定（単一の問い合わせ空間） |
-| デプロイ | AWS EC2 + RDS（既存 raisetech_kanban のインフラと同居運用を想定） |
+| デプロイ | AWS EC2 + RDS（専用インスタンス、Terraform で完全管理） |
 
 ---
 
@@ -88,4 +88,4 @@
 | バックエンド | Java / Spring Boot | Ruby / Rails API |
 | フロントエンド | React + Vite | Next.js App Router |
 | DB | PostgreSQL | MySQL |
-| デプロイ | AWS EC2 + RDS | AWS EC2 + RDS（共有） |
+| デプロイ | AWS EC2 + RDS | AWS EC2 + RDS（専用、Terraform 完全管理） |

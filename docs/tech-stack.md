@@ -8,7 +8,7 @@
 | バックエンド | Ruby on Rails 8.1（API mode） |
 | データベース | MySQL 8 |
 | 通信方式 | REST API（JSON） |
-| インフラ | Docker + AWS EC2 + RDS（既存 raisetech_kanban と同居） |
+| インフラ | Docker + AWS EC2 + RDS（専用インスタンス、Terraform で完全管理） |
 
 本アプリは既存 raisetech_kanban（Spring Boot + React + PostgreSQL）との**技術スタック差分を最大化**する方針で選定している。ポートフォリオとして「異なる言語・異なるフレームワーク・異なる DB」を経験できることを優先する。
 
@@ -149,7 +149,7 @@
 |------|------|
 | DBMS | MySQL 8.0 |
 | DB 名 | ローカル開発：`inquiry_tracker` / 本番：`inquiry_tracker_production`（+ cache / queue / cable の計 4 DB）|
-| 接続 | ローカル：`localhost:3306` / 本番：RDS エンドポイント（`kanban-linear-db.cbq4wa46o8p3.ap-northeast-1.rds.amazonaws.com`）|
+| 接続 | ローカル：`localhost:3306` / 本番：RDS エンドポイント（`terraform output rds_host` で確認）|
 | 文字コード | `utf8mb4` / 照合順序 `utf8mb4_0900_ai_ci` |
 | マイグレーション管理 | ActiveRecord Migration（`db/migrate/` に配置） |
 
@@ -165,8 +165,8 @@
 | Git | バージョン管理 |
 | GitHub | リモートリポジトリ |
 | GitHub Actions | CI（lint / test 実行） |
-| Terraform | AWS リソース（RDS / RDS 用 SG / ECR リポジトリ）を IaC 化（`infra/terraform/`） |
-| AWS EC2 | 本番アプリケーションサーバー（`i-031ce57e84c26ca37`）。既存インスタンスを再利用 |
+| Terraform | AWS リソース（VPC / EC2 / EIP / RDS / ECR / IAM / SG）すべてを IaC 化（`infra/terraform/`） |
+| AWS EC2 | 本番アプリケーションサーバー。Terraform で専用インスタンスを作成（`terraform output ec2_instance_id` で確認）|
 | AWS SSM | SSH 不要のリモートコマンド実行。`deploy.sh` が `aws ssm send-command` 経由で EC2 を操作 |
 | AWS RDS MySQL | 本番 DB（専用インスタンス `kanban-linear-db`）。DB 名 `inquiry_tracker_production` |
 
@@ -274,7 +274,7 @@ frontend は libmysqlclient に依存しないため、ホスト側で `npm run 
 **選定の決め手**
 
 - **既存 raisetech_kanban が PostgreSQL** のため、別 DBMS を経験する目的で MySQL を選択
-- **AWS RDS の運用経験**を積みたい（既存 RDS インスタンス内に新 DB を同居）
+- **AWS RDS の運用経験**を積みたい（Terraform で専用インスタンスを管理）
 - **無料枠での運用しやすさ**
 
 **却下した代替案**
@@ -289,9 +289,9 @@ frontend は libmysqlclient に依存しないため、ホスト側で `npm run 
 
 **選定の決め手**
 
-- 既存 raisetech_kanban インスタンスとの**同居運用**でコストを抑えつつ AWS 操作経験を積む
-- Terraform で IaC を学ぶ
+- VPC・EC2・RDS・ECR・IAM・SG をすべて Terraform で管理する**完全 IaC 構成**
 - Docker により開発環境差を吸収（特に Windows の libmysqlclient 互換問題を回避）
+- EC2 の初期セットアップ（Docker / git インストール・systemd 登録）は `user_data.sh.tpl` で自動化
 
 **却下した代替案**
 

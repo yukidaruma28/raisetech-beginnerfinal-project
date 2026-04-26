@@ -120,14 +120,14 @@
 
 | 項目 | 内容 |
 |------|------|
-| デプロイ先 | AWS EC2（`i-031ce57e84c26ca37`、54.64.68.36）+ RDS MySQL（新規専用インスタンス） |
+| デプロイ先 | AWS EC2 + RDS MySQL（専用インスタンス。インスタンスIDとIPは `terraform output` で確認）|
 | 本番 DB 名 | `inquiry_tracker_production`（Rails 8.1 の複数 DB 構成: primary / cache / queue / cable の 4 DB） |
 | 本番コンテナ構成 | **3 コンテナ**（nginx + nuxt + rails）を `infra/docker-compose.prod.yml` で管理。ポート 8080 で公開 |
 | nginx | リバースプロキシ。`/api/*` → rails コンテナ（:80）、`/` → nuxt コンテナ（:3000） |
 | コンテナレジストリ | Amazon ECR（`kanban-linear-backend` / `kanban-linear-frontend`）。最新 3 世代を保持 |
-| IaC | Terraform（`infra/terraform/`）で RDS・RDS 用 SG・ECR リポジトリを管理。EC2 は既存インスタンスをデータソース参照 |
+| IaC | Terraform（`infra/terraform/`）で VPC / EC2 / EIP / RDS / ECR / IAM / SG すべてを管理 |
 | デプロイ方法 | `deploy.sh`（SSH 不要）: ローカルでイメージをビルド → ECR push → SSM Send-Command で EC2 に ECR pull + `docker compose up -d` |
-| EC2 初回セットアップ | `infra/ec2-setup.sh`（SSM 経由）: Docker + Compose v2 plugin インストール + systemd サービス（`kanban-linear.service`）登録 |
+| EC2 初回セットアップ | `user_data.sh.tpl`（Terraform が `terraform apply` 時に EC2 へ投入）: Docker + git + Compose v2 plugin インストール + systemd サービス（`kanban-linear.service`）登録 |
 | ログ | Rails：標準ログ出力（STDOUT → docker logs）。CloudWatch Logs への転送は本番で検討 |
 
 ---
