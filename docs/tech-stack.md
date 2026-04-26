@@ -149,7 +149,7 @@
 |------|------|
 | DBMS | MySQL 8.0 |
 | DB 名 | ローカル開発：`inquiry_tracker` / 本番：`inquiry_tracker_production`（+ cache / queue / cable の計 4 DB）|
-| 接続 | ローカル：`localhost:3306` / 本番：RDS エンドポイント（`kanban-linear-db.cbq4wa46o8p3.ap-northeast-1.rds.amazonaws.com`）|
+| 接続 | ローカル：`localhost:3306` / 本番：RDS エンドポイント（`terraform output rds_host` で確認）|
 | 文字コード | `utf8mb4` / 照合順序 `utf8mb4_0900_ai_ci` |
 | マイグレーション管理 | ActiveRecord Migration（`db/migrate/` に配置） |
 
@@ -166,7 +166,7 @@
 | GitHub | リモートリポジトリ |
 | GitHub Actions | CI（lint / test 実行） |
 | Terraform | AWS リソース（VPC / EC2 / EIP / RDS / ECR / IAM / SG）すべてを IaC 化（`infra/terraform/`） |
-| AWS EC2 | 本番アプリケーションサーバー（`i-0ab29376e7daed30a`）。Terraform で専用インスタンスを作成 |
+| AWS EC2 | 本番アプリケーションサーバー。Terraform で専用インスタンスを作成（`terraform output ec2_instance_id` で確認）|
 | AWS SSM | SSH 不要のリモートコマンド実行。`deploy.sh` が `aws ssm send-command` 経由で EC2 を操作 |
 | AWS RDS MySQL | 本番 DB（専用インスタンス `kanban-linear-db`）。DB 名 `inquiry_tracker_production` |
 

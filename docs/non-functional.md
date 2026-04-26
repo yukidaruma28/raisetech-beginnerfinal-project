@@ -120,7 +120,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| デプロイ先 | AWS EC2（`i-0ab29376e7daed30a`、13.193.154.150）+ RDS MySQL（専用インスタンス） |
+| デプロイ先 | AWS EC2 + RDS MySQL（専用インスタンス。インスタンスIDとIPは `terraform output` で確認）|
 | 本番 DB 名 | `inquiry_tracker_production`（Rails 8.1 の複数 DB 構成: primary / cache / queue / cable の 4 DB） |
 | 本番コンテナ構成 | **3 コンテナ**（nginx + nuxt + rails）を `infra/docker-compose.prod.yml` で管理。ポート 8080 で公開 |
 | nginx | リバースプロキシ。`/api/*` → rails コンテナ（:80）、`/` → nuxt コンテナ（:3000） |
