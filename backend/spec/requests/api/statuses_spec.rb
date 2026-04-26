@@ -282,4 +282,62 @@ RSpec.describe 'Api::Statuses', type: :request do
       end
     end
   end
+
+  describe 'PATCH /api/statuses/:id/move' do
+    let!(:s1) { create(:status, name: 'Backlog',     color: '#95A5A6', position: 0) }
+    let!(:s2) { create(:status, name: 'Todo',        color: '#3498DB', position: 1) }
+    let!(:s3) { create(:status, name: 'In Progress', color: '#F39C12', position: 2) }
+
+    context 'with a valid position' do
+      it 'returns 200' do
+        patch "/api/statuses/#{s1.id}/move", params: { position: 3 }, as: :json
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns the moved status as a flat JSON object' do
+        patch "/api/statuses/#{s1.id}/move", params: { position: 3 }, as: :json
+        json = JSON.parse(response.body)
+        expect(json.keys).to match_array(%w[id name color position])
+        expect(json['id']).to eq(s1.id)
+      end
+
+      it 'reorders statuses correctly when moving to the end' do
+        patch "/api/statuses/#{s1.id}/move", params: { position: 3 }, as: :json
+        names = Status.ordered.pluck(:name)
+        expect(names).to eq([ 'Todo', 'In Progress', 'Backlog' ])
+      end
+
+      it 'reorders statuses correctly when moving to the beginning' do
+        patch "/api/statuses/#{s3.id}/move", params: { position: 1 }, as: :json
+        names = Status.ordered.pluck(:name)
+        expect(names).to eq([ 'In Progress', 'Backlog', 'Todo' ])
+      end
+
+      it 'reorders statuses correctly when moving to the middle' do
+        patch "/api/statuses/#{s3.id}/move", params: { position: 2 }, as: :json
+        names = Status.ordered.pluck(:name)
+        expect(names).to eq([ 'Backlog', 'In Progress', 'Todo' ])
+      end
+
+      it 'renumbers all positions as dense 0-indexed integers' do
+        patch "/api/statuses/#{s1.id}/move", params: { position: 3 }, as: :json
+        positions = Status.ordered.pluck(:position)
+        expect(positions).to eq([ 0, 1, 2 ])
+      end
+    end
+
+    context 'when position is missing' do
+      it 'returns 400' do
+        patch "/api/statuses/#{s1.id}/move", params: {}, as: :json
+        expect(response).to have_http_status(:bad_request)
+      end
+    end
+
+    context 'when the status does not exist' do
+      it 'returns 404' do
+        patch '/api/statuses/999999/move', params: { position: 1 }, as: :json
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
 end
